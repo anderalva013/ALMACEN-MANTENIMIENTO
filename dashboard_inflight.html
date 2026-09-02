@@ -1,0 +1,3758 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard INFLIGHT · Automático</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: #f0f2f8; padding: 16px; }
+        .dashboard { max-width: 1440px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #1a2a4a, #2c4a7a); color: white; padding: 20px 28px; border-radius: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .header-left h1 { font-size: 24px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .header-left h1 i { color: #6dafff; }
+        .header-left p { opacity: 0.8; font-size: 13px; margin-top: 2px; }
+        .header-right { display: flex; align-items: center; gap: 16px; background: rgba(255,255,255,0.1); padding: 8px 18px; border-radius: 50px; }
+        .header-right .badge { display: flex; align-items: center; gap: 6px; }
+        .header-right .badge i { font-size: 16px; color: #6dafff; }
+        .header-right .badge .number { font-size: 18px; font-weight: 700; }
+        .header-right .badge .label { font-size: 10px; opacity: 0.7; display: block; }
+        .controls-panel { background: white; padding: 14px 22px; border-radius: 14px; margin-bottom: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; border: 1px solid #e8ecf4; }
+        .controls-panel strong { color: #1a2a4a; font-size: 14px; }
+        .month-selector { display: flex; flex-wrap: wrap; gap: 8px; }
+        .month-btn { padding: 6px 18px; border: 2px solid #dce4f0; border-radius: 30px; background: white; color: #2c3e66; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .month-btn:hover { border-color: #2c4a7a; background: #f0f4fe; }
+        .month-btn.active { border-color: #2c4a7a; background: #2c4a7a; color: white; }
+        .controls-group { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-left: auto; }
+        .controls-group label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #2c3e66; cursor: pointer; }
+        .controls-group input[type="checkbox"] { width: 16px; height: 16px; accent-color: #2c4a7a; cursor: pointer; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .kpi-card { background: white; padding: 16px 18px; border-radius: 14px; border-left: 5px solid #2c4a7a; }
+        .kpi-card .label { font-size: 11px; color: #7a8aa5; text-transform: uppercase; font-weight: 600; }
+        .kpi-card .value { font-size: 24px; font-weight: 700; color: #1a2a4a; margin-top: 2px; }
+        .kpi-card .sub { font-size: 12px; color: #5a6f8a; margin-top: 2px; }
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+        .chart-card { background: white; padding: 16px 18px; border-radius: 14px; border: 1px solid #e8ecf4; }
+        .chart-card.full { grid-column: 1 / -1; }
+        .chart-card h3 { font-size: 14px; color: #1a2a4a; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .chart-card h3 i { color: #2c4a7a; }
+        .chart-container { position: relative; height: 190px; }
+        .chart-container.tall { height: 210px; }
+        .table-section { background: white; border-radius: 14px; padding: 18px; border: 1px solid #e8ecf4; margin-bottom: 18px; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .table-header h3 { font-size: 16px; color: #1a2a4a; display: flex; align-items: center; gap: 8px; }
+        .table-header .badge-count { background: #2c4a7a; color: white; padding: 2px 12px; border-radius: 30px; font-size: 12px; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 8px 6px; background: #f8faff; color: #2c3e66; font-weight: 600; border-bottom: 2px solid #e8ecf4; }
+        td { padding: 7px 6px; border-bottom: 1px solid #f0f2f8; color: #1a2a4a; }
+        td .highlight { font-weight: 600; color: #1a3a7a; }
+        .tag { display: inline-block; padding: 2px 10px; border-radius: 30px; font-size: 11px; font-weight: 600; }
+        .tag-blue { background: #e8f0fe; color: #2c4a7a; }
+        .tag-green { background: #e8f5ee; color: #1a7a4a; }
+        .progress-bar { display: inline-block; height: 5px; width: 50px; background: #e8ecf4; border-radius: 10px; overflow: hidden; vertical-align: middle; margin-right: 6px; }
+        .progress-bar .fill { height: 100%; background: #2c4a7a; border-radius: 10px; }
+        .footer { text-align: center; color: #7a8aa5; font-size: 12px; padding-top: 12px; border-top: 1px solid #e8ecf4; }
+        .hidden { display: none !important; }
+        .update-badge { background: #27ae60; color: white; padding: 2px 14px; border-radius: 30px; font-size: 11px; font-weight: 600; }
+        .item-count { background: #e8f0fe; color: #2c4a7a; padding: 1px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; margin-left: 4px; }
+        @media (max-width: 820px) { .charts-grid { grid-template-columns: 1fr; } .header { flex-direction: column; text-align: center; } .header-right { justify-content: center; } .controls-panel { flex-direction: column; } .controls-group { margin-left: 0; } }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <div class="header-left">
+                <h1><i class="fas fa-warehouse"></i> INFLIGHT · Output Forms</h1>
+                <p>Dashboard automático · Actualizado: 02/09/2026 15:57</p>
+            </div>
+            <div class="header-right">
+                <div class="badge">
+                    <i class="fas fa-calendar-alt"></i>
+                    <div>
+                        <span class="number">328</span>
+                        <span class="label">Output Forms</span>
+                    </div>
+                </div>
+                <div class="badge">
+                    <i class="fas fa-sol"></i>
+                    <div>
+                        <span class="number">S/ 73,231.03</span>
+                        <span class="label">Total sin IGV</span>
+                    </div>
+                </div>
+                <div class="badge">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <span class="number">5</span>
+                        <span class="label">Meses</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-panel">
+            <strong><i class="fas fa-filter"></i> Seleccionar mes:</strong>
+            <div class="month-selector" id="monthSelector">
+                <button class="month-btn active" data-month="all">📊 Todos</button>
+            </div>
+            <div class="controls-group">
+                <label><input type="checkbox" id="toggle-kpis" checked> KPIs</label>
+                <label><input type="checkbox" id="toggle-charts" checked> Gráficos</label>
+                <label><input type="checkbox" id="toggle-table" checked> Tabla</label>
+            </div>
+        </div>
+
+        <section id="section-kpis" class="kpi-grid">
+            <div class="kpi-card" style="border-color: #2c4a7a;">
+                <div class="label">Total Gastado</div>
+                <div class="value" id="kpiTotal">S/ 73,231.03</div>
+                <div class="sub" id="kpiTotalSub">+18% IGV → S/ 86,412.62</div>
+            </div>
+            <div class="kpi-card" style="border-color: #27ae60;">
+                <div class="label">Output Forms</div>
+                <div class="value" id="kpiOfs">328</div>
+                <div class="sub" id="kpiOfsSub">en el período</div>
+            </div>
+            <div class="kpi-card" style="border-color: #8e44ad;">
+                <div class="label">Órdenes de Trabajo (OTs)</div>
+                <div class="value" id="kpiOTs">262</div>
+                <div class="sub" id="kpiOTsSub">OTs distintas</div>
+            </div>
+            <div class="kpi-card" style="border-color: #f39c12;">
+                <div class="label">Promedio / OF</div>
+                <div class="value" id="kpiPromedio">S/ 223.27</div>
+                <div class="sub" id="kpiPromedioSub">por Output Form</div>
+            </div>
+            <div class="kpi-card" style="border-color: #e74c3c;">
+                <div class="label">Top OF del período</div>
+                <div class="value" id="kpiTop">S/ 0</div>
+                <div class="sub" id="kpiTopSub">-</div>
+            </div>
+            <div class="kpi-card" style="border-color: #1abc9c;">
+                <div class="label">Período seleccionado</div>
+                <div class="value" id="kpiMes">Todos</div>
+                <div class="sub" id="kpiMesSub">5 meses</div>
+            </div>
+        </section>
+
+        <section id="section-charts" class="charts-grid">
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-pie"></i> Distribución por Grupo</h3>
+                <div class="chart-container"><canvas id="groupChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-bar"></i> Top 5 Output Forms</h3>
+                <div class="chart-container"><canvas id="topChart"></canvas></div>
+            </div>
+            <div class="chart-card full" id="chartEvolucion">
+                <h3><i class="fas fa-chart-line"></i> Evolución mensual</h3>
+                <div class="chart-container tall"><canvas id="monthlyChart"></canvas></div>
+            </div>
+        </section>
+
+        <section id="section-table" class="table-section">
+            <div class="table-header">
+                <h3><i class="fas fa-list"></i> Detalle de Output Forms · <span id="tableTitle">Todos</span></h3>
+                <span class="badge-count" id="tableCount">328 registros</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>OF #</th>
+                            <th>Fecha</th>
+                            <th>Detalle</th>
+                            <th>Grupo</th>
+                            <th>OT #</th>
+                            <th>Total sin IGV</th>
+                            <th>% del mes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="footer">
+            <i class="fas fa-database"></i> Datos procesados automáticamente desde Excel · 
+            <span class="update-badge"><i class="fas fa-sync-alt"></i> Auto-generado: 02/09/2026 15:57</span>
+        </div>
+    </div>
+
+    <script>
+        const monthlySummary = [
+  {
+    "mes": "Abril",
+    "ofs": 33,
+    "total": 11217.43,
+    "ots": 17
+  },
+  {
+    "mes": "Mayo",
+    "ofs": 100,
+    "total": 22931.0,
+    "ots": 87
+  },
+  {
+    "mes": "Junio",
+    "ofs": 78,
+    "total": 10901.03,
+    "ots": 71
+  },
+  {
+    "mes": "Julio",
+    "ofs": 62,
+    "total": 16549.1,
+    "ots": 49
+  },
+  {
+    "mes": "Agosto",
+    "ofs": 55,
+    "total": 11632.47,
+    "ots": 38
+  }
+];
+        const detailData = {
+  "Abril": [
+    {
+      "of": 1648592,
+      "fecha": "2026-04-06",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle (16 ítems)",
+      "total": 3116.05,
+      "grupo": "Otros",
+      "num_items": 16
+    },
+    {
+      "of": 1663400,
+      "fecha": "2026-04-23",
+      "mes": "Abril",
+      "ot": "680",
+      "detalle": "Sin detalle",
+      "total": 1883.25,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1650611,
+      "fecha": "2026-04-08",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle (14 ítems)",
+      "total": 934.83,
+      "grupo": "Otros",
+      "num_items": 14
+    },
+    {
+      "of": 1663395,
+      "fecha": "2026-04-23",
+      "mes": "Abril",
+      "ot": "681",
+      "detalle": "Sin detalle",
+      "total": 791.52,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1662908,
+      "fecha": "2026-04-21",
+      "mes": "Abril",
+      "ot": "666",
+      "detalle": "Sin detalle",
+      "total": 518.98,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1661129,
+      "fecha": "2026-04-21",
+      "mes": "Abril",
+      "ot": "654",
+      "detalle": "Sin detalle (3 ítems)",
+      "total": 474.67,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1660689,
+      "fecha": "2026-04-19",
+      "mes": "Abril",
+      "ot": "642",
+      "detalle": "Sin detalle (2 ítems)",
+      "total": 369.92,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1660688,
+      "fecha": "2026-04-19",
+      "mes": "Abril",
+      "ot": "641",
+      "detalle": "Sin detalle (2 ítems)",
+      "total": 369.92,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1660683,
+      "fecha": "2026-04-19",
+      "mes": "Abril",
+      "ot": "624",
+      "detalle": "Sin detalle (2 ítems)",
+      "total": 369.92,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1661125,
+      "fecha": "2026-04-21",
+      "mes": "Abril",
+      "ot": "647",
+      "detalle": "Sin detalle (3 ítems)",
+      "total": 366.03,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1654309,
+      "fecha": "2026-04-13",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle (2 ítems)",
+      "total": 325.92,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1647627,
+      "fecha": "2026-04-04",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "REALIZADO EL 1/4/26 (5 ítems)",
+      "total": 249.01,
+      "grupo": "Otros",
+      "num_items": 5
+    },
+    {
+      "of": 1657333,
+      "fecha": "2026-04-15",
+      "mes": "Abril",
+      "ot": "595",
+      "detalle": "Sin detalle",
+      "total": 239.21,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1657570,
+      "fecha": "2026-04-16",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle",
+      "total": 239.21,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1652210,
+      "fecha": "2026-04-10",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle",
+      "total": 196.59,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1661154,
+      "fecha": "2026-04-20",
+      "mes": "Abril",
+      "ot": "653",
+      "detalle": "Sin detalle",
+      "total": 152.54,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1651616,
+      "fecha": "2026-04-09",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle (4 ítems)",
+      "total": 151.38,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1647867,
+      "fecha": "2026-04-03",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle (3 ítems)",
+      "total": 82.29,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1660700,
+      "fecha": "2026-04-20",
+      "mes": "Abril",
+      "ot": "643",
+      "detalle": "Sin detalle",
+      "total": 76.03,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1657376,
+      "fecha": "2026-04-16",
+      "mes": "Abril",
+      "ot": "614",
+      "detalle": "Sin detalle (3 ítems)",
+      "total": 62.4,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1654294,
+      "fecha": "2026-04-13",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle (5 ítems)",
+      "total": 45.2,
+      "grupo": "Otros",
+      "num_items": 5
+    },
+    {
+      "of": 1657327,
+      "fecha": "2026-04-15",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle (2 ítems)",
+      "total": 43.5,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1657762,
+      "fecha": "2026-04-17",
+      "mes": "Abril",
+      "ot": "619",
+      "detalle": "Sin detalle",
+      "total": 35.95,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1654242,
+      "fecha": "2026-04-10",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle (5 ítems)",
+      "total": 33.92,
+      "grupo": "Otros",
+      "num_items": 5
+    },
+    {
+      "of": 1662904,
+      "fecha": "2026-04-22",
+      "mes": "Abril",
+      "ot": "654",
+      "detalle": "Sin detalle",
+      "total": 26.35,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1655234,
+      "fecha": "2026-04-14",
+      "mes": "Abril",
+      "ot": "582",
+      "detalle": "Sin detalle",
+      "total": 17.28,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1655254,
+      "fecha": "2026-04-14",
+      "mes": "Abril",
+      "ot": "567",
+      "detalle": "Sin detalle",
+      "total": 17.15,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1657760,
+      "fecha": "2026-04-17",
+      "mes": "Abril",
+      "ot": "618",
+      "detalle": "Sin detalle",
+      "total": 9.37,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1654287,
+      "fecha": "2026-04-13",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle",
+      "total": 7.95,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1662901,
+      "fecha": "2026-04-22",
+      "mes": "Abril",
+      "ot": "667",
+      "detalle": "Sin detalle",
+      "total": 6.5,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1650498,
+      "fecha": "2026-04-07",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle (3 ítems)",
+      "total": 2.43,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1654305,
+      "fecha": "2026-04-13",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle",
+      "total": 1.08,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1653609,
+      "fecha": "2026-04-13",
+      "mes": "Abril",
+      "ot": "-",
+      "detalle": "Sin detalle",
+      "total": 1.08,
+      "grupo": "Otros",
+      "num_items": 1
+    }
+  ],
+  "Mayo": [
+    {
+      "of": 1685718,
+      "fecha": "2026-05-16",
+      "mes": "Mayo",
+      "ot": "921",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO INST…",
+      "total": 4455.0,
+      "grupo": "Activos < 1/4 UIT",
+      "num_items": 1
+    },
+    {
+      "of": 1685729,
+      "fecha": "2026-05-16",
+      "mes": "Mayo",
+      "ot": "967",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB…",
+      "total": 3257.7,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1688490,
+      "fecha": "2026-05-21",
+      "mes": "Mayo",
+      "ot": "1005",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO ENLL… (2 ítems)",
+      "total": 3050.0,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1685708,
+      "fecha": "2026-05-16",
+      "mes": "Mayo",
+      "ot": "-",
+      "detalle": "RAMPA PARA CAMION",
+      "total": 1410.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1673028,
+      "fecha": "2026-05-04",
+      "mes": "Mayo",
+      "ot": "774",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO HABI… (8 ítems)",
+      "total": 689.33,
+      "grupo": "Otros",
+      "num_items": 8
+    },
+    {
+      "of": 1673033,
+      "fecha": "2026-05-04",
+      "mes": "Mayo",
+      "ot": "775",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO Camb…",
+      "total": 566.34,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1681258,
+      "fecha": "2026-05-13",
+      "mes": "Mayo",
+      "ot": "898",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB…",
+      "total": 566.34,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1677075,
+      "fecha": "2026-05-09",
+      "mes": "Mayo",
+      "ot": "807",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMA… (2 ítems)",
+      "total": 547.22,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1684553,
+      "fecha": "2026-05-16",
+      "mes": "Mayo",
+      "ot": "928",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB…",
+      "total": 540.62,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1693551,
+      "fecha": "2026-05-27",
+      "mes": "Mayo",
+      "ot": "1028",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB…",
+      "total": 478.42,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1674405,
+      "fecha": "2026-05-04",
+      "mes": "Mayo",
+      "ot": "772",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO HABI… (19 ítems)",
+      "total": 430.02,
+      "grupo": "Otros",
+      "num_items": 19
+    },
+    {
+      "of": 1678496,
+      "fecha": "2026-05-11",
+      "mes": "Mayo",
+      "ot": "855",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO Furg… (3 ítems)",
+      "total": 423.76,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1681260,
+      "fecha": "2026-05-13",
+      "mes": "Mayo",
+      "ot": "899",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB…",
+      "total": 388.98,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1690981,
+      "fecha": "2026-05-25",
+      "mes": "Mayo",
+      "ot": "1014",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB… (3 ítems)",
+      "total": 312.64,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1688493,
+      "fecha": "2026-05-19",
+      "mes": "Mayo",
+      "ot": "990",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO INST…",
+      "total": 309.51,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1695276,
+      "fecha": "2026-05-28",
+      "mes": "Mayo",
+      "ot": "876",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MTTO…",
+      "total": 305.75,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1680055,
+      "fecha": "2026-05-12",
+      "mes": "Mayo",
+      "ot": "890",
+      "detalle": "/870 DESPACHADO POR ANDERSON ALVARADO…",
+      "total": 301.19,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1672986,
+      "fecha": "2026-05-02",
+      "mes": "Mayo",
+      "ot": "755",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO UNID…",
+      "total": 270.11,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1675199,
+      "fecha": "2026-05-06",
+      "mes": "Mayo",
+      "ot": "785",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO INST…",
+      "total": 245.74,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1684457,
+      "fecha": "2026-05-15",
+      "mes": "Mayo",
+      "ot": "922",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB… (2 ítems)",
+      "total": 244.01,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1693598,
+      "fecha": "2026-05-28",
+      "mes": "Mayo",
+      "ot": "1032",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB…",
+      "total": 239.21,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1677080,
+      "fecha": "2026-05-08",
+      "mes": "Mayo",
+      "ot": "817",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB… (6 ítems)",
+      "total": 228.19,
+      "grupo": "Mantenimiento",
+      "num_items": 6
+    },
+    {
+      "of": 1693502,
+      "fecha": "2026-05-26",
+      "mes": "Mayo",
+      "ot": "845",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LUCE… (2 ítems)",
+      "total": 212.98,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1688532,
+      "fecha": "2026-05-21",
+      "mes": "Mayo",
+      "ot": "-",
+      "detalle": "Sin detalle",
+      "total": 201.6,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1677057,
+      "fecha": "2026-05-08",
+      "mes": "Mayo",
+      "ot": "894",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CONG… (3 ítems)",
+      "total": 185.59,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1684427,
+      "fecha": "2026-05-15",
+      "mes": "Mayo",
+      "ot": "915",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LIMP… (6 ítems)",
+      "total": 183.31,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 6
+    },
+    {
+      "of": 1684662,
+      "fecha": "2026-05-16",
+      "mes": "Mayo",
+      "ot": "929",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB… (3 ítems)",
+      "total": 162.91,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1679369,
+      "fecha": "2026-05-11",
+      "mes": "Mayo",
+      "ot": "852",
+      "detalle": "DESPACHASO POR ANDERSON ALVARADO CAMB…",
+      "total": 159.5,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1675325,
+      "fecha": "2026-05-07",
+      "mes": "Mayo",
+      "ot": "774",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO HABI… (4 ítems)",
+      "total": 155.29,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1677084,
+      "fecha": "2026-05-08",
+      "mes": "Mayo",
+      "ot": "815",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO HABI… (5 ítems)",
+      "total": 139.19,
+      "grupo": "Otros",
+      "num_items": 5
+    },
+    {
+      "of": 1687635,
+      "fecha": "2026-05-18",
+      "mes": "Mayo",
+      "ot": "812",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO ABAT… (4 ítems)",
+      "total": 113.5,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1690942,
+      "fecha": "2026-05-25",
+      "mes": "Mayo",
+      "ot": "1021",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB…",
+      "total": 107.0,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1687360,
+      "fecha": "2026-05-19",
+      "mes": "Mayo",
+      "ot": "974",
+      "detalle": "/973 DESPACHADO POR ANDERSON ALVARADO… (7 ítems)",
+      "total": 98.21,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 7
+    },
+    {
+      "of": 1695290,
+      "fecha": "2026-05-28",
+      "mes": "Mayo",
+      "ot": "1033",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MESA… (2 ítems)",
+      "total": 97.2,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1672991,
+      "fecha": "2026-05-02",
+      "mes": "Mayo",
+      "ot": "773",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO BAÑO… (2 ítems)",
+      "total": 96.0,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1687511,
+      "fecha": "2026-05-19",
+      "mes": "Mayo",
+      "ot": "1001",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO SSHH (2 ítems)",
+      "total": 87.77,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1686602,
+      "fecha": "2026-05-17",
+      "mes": "Mayo",
+      "ot": "981",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LIMP… (7 ítems)",
+      "total": 76.47,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 7
+    },
+    {
+      "of": 1681235,
+      "fecha": "2026-05-13",
+      "mes": "Mayo",
+      "ot": "901",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CORR… (6 ítems)",
+      "total": 72.15,
+      "grupo": "Otros",
+      "num_items": 6
+    },
+    {
+      "of": 1688554,
+      "fecha": "2026-05-21",
+      "mes": "Mayo",
+      "ot": "1006",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MANT… (2 ítems)",
+      "total": 67.1,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1687381,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "991",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LIMP… (4 ítems)",
+      "total": 66.0,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 4
+    },
+    {
+      "of": 1695234,
+      "fecha": "2026-05-27",
+      "mes": "Mayo",
+      "ot": "872",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMA… (3 ítems)",
+      "total": 62.92,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1695642,
+      "fecha": "2026-05-30",
+      "mes": "Mayo",
+      "ot": "1038",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO REVI… (4 ítems)",
+      "total": 55.35,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1688525,
+      "fecha": "2026-05-21",
+      "mes": "Mayo",
+      "ot": "999",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO SE R… (2 ítems)",
+      "total": 54.04,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1679363,
+      "fecha": "2026-05-12",
+      "mes": "Mayo",
+      "ot": "840",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LICU… (2 ítems)",
+      "total": 52.68,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1673014,
+      "fecha": "2026-05-02",
+      "mes": "Mayo",
+      "ot": "773",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO BAÑO… (2 ítems)",
+      "total": 52.0,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1686596,
+      "fecha": "2026-05-17",
+      "mes": "Mayo",
+      "ot": "983",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CORR… (5 ítems)",
+      "total": 51.92,
+      "grupo": "Otros",
+      "num_items": 5
+    },
+    {
+      "of": 1679349,
+      "fecha": "2026-05-12",
+      "mes": "Mayo",
+      "ot": "864",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CORR…",
+      "total": 51.89,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1687236,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "994",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO COCI… (2 ítems)",
+      "total": 45.68,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1695268,
+      "fecha": "2026-05-27",
+      "mes": "Mayo",
+      "ot": "877",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MTTO… (3 ítems)",
+      "total": 43.9,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1687497,
+      "fecha": "2026-05-18",
+      "mes": "Mayo",
+      "ot": "854",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO PORT… (4 ítems)",
+      "total": 43.18,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1680103,
+      "fecha": "2026-05-12",
+      "mes": "Mayo",
+      "ot": "893",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO REVI… (2 ítems)",
+      "total": 40.44,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1687638,
+      "fecha": "2026-05-18",
+      "mes": "Mayo",
+      "ot": "1002",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO TABL… (3 ítems)",
+      "total": 38.95,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1695614,
+      "fecha": "2026-05-30",
+      "mes": "Mayo",
+      "ot": "1037",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LEDS…",
+      "total": 37.93,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1695550,
+      "fecha": "2026-05-30",
+      "mes": "Mayo",
+      "ot": "1033",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MESA… (2 ítems)",
+      "total": 35.0,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1687234,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "992",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LIMP… (2 ítems)",
+      "total": 34.45,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 2
+    },
+    {
+      "of": 1678610,
+      "fecha": "2026-05-09",
+      "mes": "Mayo",
+      "ot": "808",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO REFR…",
+      "total": 33.9,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1681232,
+      "fecha": "2026-05-13",
+      "mes": "Mayo",
+      "ot": "895",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO SECA… (6 ítems)",
+      "total": 32.82,
+      "grupo": "Otros",
+      "num_items": 6
+    },
+    {
+      "of": 1686605,
+      "fecha": "2026-05-17",
+      "mes": "Mayo",
+      "ot": "980",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO PINT… (2 ítems)",
+      "total": 32.72,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1687326,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "979",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO DESM… (6 ítems)",
+      "total": 32.35,
+      "grupo": "Otros",
+      "num_items": 6
+    },
+    {
+      "of": 1674267,
+      "fecha": "2026-05-05",
+      "mes": "Mayo",
+      "ot": "777",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO PARA… (2 ítems)",
+      "total": 31.06,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1692806,
+      "fecha": "2026-05-25",
+      "mes": "Mayo",
+      "ot": "926",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO ENCH…",
+      "total": 30.24,
+      "grupo": "Activos < 1/4 UIT",
+      "num_items": 1
+    },
+    {
+      "of": 1695615,
+      "fecha": "2026-05-30",
+      "mes": "Mayo",
+      "ot": "1038",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MTTO…",
+      "total": 28.4,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1687648,
+      "fecha": "2026-05-19",
+      "mes": "Mayo",
+      "ot": "-",
+      "detalle": "Sin detalle",
+      "total": 26.16,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1679365,
+      "fecha": "2026-05-11",
+      "mes": "Mayo",
+      "ot": "854",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO TAPA…",
+      "total": 26.07,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1687287,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "996",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LIMP… (2 ítems)",
+      "total": 24.08,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 2
+    },
+    {
+      "of": 1672979,
+      "fecha": "2026-05-02",
+      "mes": "Mayo",
+      "ot": "753",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO INST… (3 ítems)",
+      "total": 24.0,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1680098,
+      "fecha": "2026-05-12",
+      "mes": "Mayo",
+      "ot": "891",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MANT… (3 ítems)",
+      "total": 23.35,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1687301,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "989",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO INST… (3 ítems)",
+      "total": 21.72,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1675322,
+      "fecha": "2026-05-07",
+      "mes": "Mayo",
+      "ot": "786",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CONG… (2 ítems)",
+      "total": 21.29,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1687233,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "995",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LEVA…",
+      "total": 21.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1682546,
+      "fecha": "2026-05-14",
+      "mes": "Mayo",
+      "ot": "906",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO TRAM… (3 ítems)",
+      "total": 20.32,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1679222,
+      "fecha": "2026-05-11",
+      "mes": "Mayo",
+      "ot": "856",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LUMI… (3 ítems)",
+      "total": 19.41,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1686599,
+      "fecha": "2026-05-17",
+      "mes": "Mayo",
+      "ot": "985",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LIMP… (3 ítems)",
+      "total": 18.15,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 3
+    },
+    {
+      "of": 1688516,
+      "fecha": "2026-05-21",
+      "mes": "Mayo",
+      "ot": "1002",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LAVA… (3 ítems)",
+      "total": 16.08,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1684467,
+      "fecha": "2026-05-15",
+      "mes": "Mayo",
+      "ot": "920",
+      "detalle": "DESPACHO ANDERSON ALVARADO VERIFICACI…",
+      "total": 15.49,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1692809,
+      "fecha": "2026-05-25",
+      "mes": "Mayo",
+      "ot": "1022",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO PLAN… (3 ítems)",
+      "total": 14.7,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1687644,
+      "fecha": "2026-05-19",
+      "mes": "Mayo",
+      "ot": "969",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB… (4 ítems)",
+      "total": 14.45,
+      "grupo": "Mantenimiento",
+      "num_items": 4
+    },
+    {
+      "of": 1689215,
+      "fecha": "2026-05-22",
+      "mes": "Mayo",
+      "ot": "1010",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MTTO…",
+      "total": 13.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1682221,
+      "fecha": "2026-05-14",
+      "mes": "Mayo",
+      "ot": "906",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LIMP… (2 ítems)",
+      "total": 12.39,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 2
+    },
+    {
+      "of": 1679354,
+      "fecha": "2026-05-12",
+      "mes": "Mayo",
+      "ot": "862",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LIMP… (2 ítems)",
+      "total": 11.4,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 2
+    },
+    {
+      "of": 1690974,
+      "fecha": "2026-05-25",
+      "mes": "Mayo",
+      "ot": "1002",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO TRAM…",
+      "total": 10.44,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1674266,
+      "fecha": "2026-05-06",
+      "mes": "Mayo",
+      "ot": "783",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO PARA…",
+      "total": 10.22,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1687322,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "988",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB…",
+      "total": 9.95,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1684453,
+      "fecha": "2026-05-15",
+      "mes": "Mayo",
+      "ot": "914",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMA…",
+      "total": 9.5,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1682224,
+      "fecha": "2026-05-14",
+      "mes": "Mayo",
+      "ot": "904",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO IMPE… (2 ítems)",
+      "total": 8.94,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1687223,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "997",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO PINT…",
+      "total": 8.69,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1682219,
+      "fecha": "2026-05-14",
+      "mes": "Mayo",
+      "ot": "-",
+      "detalle": "Sin detalle",
+      "total": 8.28,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1675319,
+      "fecha": "2026-05-07",
+      "mes": "Mayo",
+      "ot": "788",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO REFO…",
+      "total": 8.23,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1675240,
+      "fecha": "2026-05-06",
+      "mes": "Mayo",
+      "ot": "777",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMP… (2 ítems)",
+      "total": 6.76,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1692801,
+      "fecha": "2026-05-25",
+      "mes": "Mayo",
+      "ot": "952",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO PUER… (2 ítems)",
+      "total": 5.76,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1687224,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "993",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LIMP… (2 ítems)",
+      "total": 5.65,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 2
+    },
+    {
+      "of": 1679366,
+      "fecha": "2026-05-11",
+      "mes": "Mayo",
+      "ot": "848",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO HABI…",
+      "total": 5.6,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1686600,
+      "fecha": "2026-05-17",
+      "mes": "Mayo",
+      "ot": "972",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO DESM…",
+      "total": 4.72,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1687351,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "987",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO REVI…",
+      "total": 4.72,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1682222,
+      "fecha": "2026-05-14",
+      "mes": "Mayo",
+      "ot": "908",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LIMP…",
+      "total": 4.08,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 1
+    },
+    {
+      "of": 1687369,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "982",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CAMB…",
+      "total": 3.19,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1687632,
+      "fecha": "2026-05-18",
+      "mes": "Mayo",
+      "ot": "976",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MOTO… (2 ítems)",
+      "total": 3.0,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1689206,
+      "fecha": "2026-05-22",
+      "mes": "Mayo",
+      "ot": "1007",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO CONE… (3 ítems)",
+      "total": 2.74,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1693549,
+      "fecha": "2026-05-27",
+      "mes": "Mayo",
+      "ot": "885",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MTTO…",
+      "total": 2.5,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1687324,
+      "fecha": "2026-05-20",
+      "mes": "Mayo",
+      "ot": "984",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO COLO…",
+      "total": 1.3,
+      "grupo": "Otros",
+      "num_items": 1
+    }
+  ],
+  "Junio": [
+    {
+      "of": 1715902,
+      "fecha": "2026-06-20",
+      "mes": "Junio",
+      "ot": "1249",
+      "detalle": "CAMBIO DE BATERIA ACT-911",
+      "total": 1438.0,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1718094,
+      "fecha": "2026-06-24",
+      "mes": "Junio",
+      "ot": "1220",
+      "detalle": "INSTALACION DE PISTOLAS DE AGUA",
+      "total": 1400.0,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1699796,
+      "fecha": "2026-06-03",
+      "mes": "Junio",
+      "ot": "1068",
+      "detalle": "MOVIMIENTO DE FORMILLONES EN COCINA C… (15 ítems)",
+      "total": 1143.14,
+      "grupo": "Otros",
+      "num_items": 15
+    },
+    {
+      "of": 1706879,
+      "fecha": "2026-06-11",
+      "mes": "Junio",
+      "ot": "1174",
+      "detalle": "CAMBIO DE TRANSFORMADORES DE BALANZAS (3 ítems)",
+      "total": 518.58,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1719508,
+      "fecha": "2026-06-25",
+      "mes": "Junio",
+      "ot": "857",
+      "detalle": "MTTO MENSUAL CAMION AUX-857 (4 ítems)",
+      "total": 399.35,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1719512,
+      "fecha": "2026-06-27",
+      "mes": "Junio",
+      "ot": "1263",
+      "detalle": "MTTO AUX-766 (4 ítems)",
+      "total": 399.35,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1712456,
+      "fecha": "2026-06-17",
+      "mes": "Junio",
+      "ot": "1220",
+      "detalle": "CAMBIO DE PISTOLA DE AGUA (4 ítems)",
+      "total": 356.48,
+      "grupo": "Mantenimiento",
+      "num_items": 4
+    },
+    {
+      "of": 1707511,
+      "fecha": "2026-06-12",
+      "mes": "Junio",
+      "ot": "1187",
+      "detalle": "CAMBIO DE GARRUCHAS (4 ítems)",
+      "total": 329.4,
+      "grupo": "Mantenimiento",
+      "num_items": 4
+    },
+    {
+      "of": 1705699,
+      "fecha": "2026-06-09",
+      "mes": "Junio",
+      "ot": "1153",
+      "detalle": "VERIFICACION Y CORRECCION DE TABLERO … (2 ítems)",
+      "total": 307.5,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1712463,
+      "fecha": "2026-06-17",
+      "mes": "Junio",
+      "ot": "1218",
+      "detalle": "VERIFICACION DE ABATIDOR (2 ítems)",
+      "total": 307.0,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1712556,
+      "fecha": "2026-06-18",
+      "mes": "Junio",
+      "ot": "1224",
+      "detalle": "CAMION 1 RECARGA REFRIGERANTE",
+      "total": 305.75,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1705700,
+      "fecha": "2026-06-09",
+      "mes": "Junio",
+      "ot": "1156",
+      "detalle": "CAMION 11 THERMOKING (2 ítems)",
+      "total": 297.23,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1699885,
+      "fecha": "2026-06-04",
+      "mes": "Junio",
+      "ot": "1070",
+      "detalle": "ARMADO DE TABLERO EN SALA DE PREELABO… (4 ítems)",
+      "total": 269.2,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1705741,
+      "fecha": "2026-06-10",
+      "mes": "Junio",
+      "ot": "1166",
+      "detalle": "OF 1166 CAMBIO DE CONTACTOR EN TABLER…",
+      "total": 210.84,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1701281,
+      "fecha": "2026-06-04",
+      "mes": "Junio",
+      "ot": "1073",
+      "detalle": "CAMBIO DE TOMA CORRIENTE EN PLANTA (5 ítems)",
+      "total": 209.6,
+      "grupo": "Mantenimiento",
+      "num_items": 5
+    },
+    {
+      "of": 1708993,
+      "fecha": "2026-06-14",
+      "mes": "Junio",
+      "ot": "1192",
+      "detalle": "COCHE PARA MATERIAL DE VUELO #10 (4 ítems)",
+      "total": 180.47,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1710889,
+      "fecha": "2026-06-16",
+      "mes": "Junio",
+      "ot": "1216",
+      "detalle": "COCHE PARA MATERIAL DE VUELO (3 ítems)",
+      "total": 163.73,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1710882,
+      "fecha": "2026-06-16",
+      "mes": "Junio",
+      "ot": "1215",
+      "detalle": "CAMBIO DE GARRUCHAS DE COCHE BANDEJERO (3 ítems)",
+      "total": 157.86,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1708972,
+      "fecha": "2026-06-14",
+      "mes": "Junio",
+      "ot": "1193",
+      "detalle": "COCHE PARA MATERIAL DE VUELO #11 (2 ítems)",
+      "total": 154.24,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1708991,
+      "fecha": "2026-06-15",
+      "mes": "Junio",
+      "ot": "1198",
+      "detalle": "COCHE BANDEJERO PARA MATERIAL DE VUELO (2 ítems)",
+      "total": 154.24,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1708986,
+      "fecha": "2026-06-15",
+      "mes": "Junio",
+      "ot": "1199",
+      "detalle": "COCHE PARA METAL DE VUELO (2 ítems)",
+      "total": 154.24,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1712543,
+      "fecha": "2026-06-18",
+      "mes": "Junio",
+      "ot": "1227",
+      "detalle": "CAMBIO DE GARRUCHAS (2 ítems)",
+      "total": 154.24,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1705771,
+      "fecha": "2026-06-11",
+      "mes": "Junio",
+      "ot": "1070",
+      "detalle": "TABLERO EN PREELABORADOS DEL 4/6/26",
+      "total": 148.38,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1699772,
+      "fecha": "2026-06-03",
+      "mes": "Junio",
+      "ot": "1063",
+      "detalle": "CAMBIO DE PRESOSTATO EN CAMARA INTERM…",
+      "total": 137.9,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1699030,
+      "fecha": "2026-06-01",
+      "mes": "Junio",
+      "ot": "840",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO LICU… (4 ítems)",
+      "total": 100.99,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1706950,
+      "fecha": "2026-06-11",
+      "mes": "Junio",
+      "ot": "1176",
+      "detalle": "SE REALIZA EL CAMBIO DE TUBOS LED EN …",
+      "total": 93.5,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1715393,
+      "fecha": "2026-06-19",
+      "mes": "Junio",
+      "ot": "1228",
+      "detalle": "CAMBIO DE TOMA EN PASTELERIA (3 ítems)",
+      "total": 92.62,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1699051,
+      "fecha": "2026-06-01",
+      "mes": "Junio",
+      "ot": "1038",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO REVI… (2 ítems)",
+      "total": 90.02,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1706884,
+      "fecha": "2026-06-11",
+      "mes": "Junio",
+      "ot": "1172",
+      "detalle": "CAMBIO DE PULSADOR DE EMEERGANCIA",
+      "total": 88.2,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1715898,
+      "fecha": "2026-06-20",
+      "mes": "Junio",
+      "ot": "1248",
+      "detalle": "CAMBIO DE PLUMILLAS DOQ-942",
+      "total": 88.14,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1709034,
+      "fecha": "2026-06-13",
+      "mes": "Junio",
+      "ot": "1188",
+      "detalle": "ESQUINEROS EN PLANTA",
+      "total": 79.2,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1707299,
+      "fecha": "2026-06-12",
+      "mes": "Junio",
+      "ot": "1185",
+      "detalle": "Sin detalle",
+      "total": 74.25,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1705140,
+      "fecha": "2026-06-08",
+      "mes": "Junio",
+      "ot": "1098",
+      "detalle": "REVISION DE REFRESQUERA (4 ítems)",
+      "total": 74.07,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1699027,
+      "fecha": "2026-06-01",
+      "mes": "Junio",
+      "ot": "1047",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO MTTO… (5 ítems)",
+      "total": 67.1,
+      "grupo": "Otros",
+      "num_items": 5
+    },
+    {
+      "of": 1706854,
+      "fecha": "2026-06-11",
+      "mes": "Junio",
+      "ot": "1178",
+      "detalle": "PINTADO DE OFICINA DE OPERACIONES (3 ítems)",
+      "total": 54.62,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1712452,
+      "fecha": "2026-06-17",
+      "mes": "Junio",
+      "ot": "1222",
+      "detalle": "CORTE DE PLANCHA INOX PARA DESINFECCI… (5 ítems)",
+      "total": 53.73,
+      "grupo": "Activos < 1/4 UIT",
+      "num_items": 5
+    },
+    {
+      "of": 1706868,
+      "fecha": "2026-06-11",
+      "mes": "Junio",
+      "ot": "177",
+      "detalle": "COLOCACION DE ESQUINEROS EN PLANTA",
+      "total": 44.55,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1705867,
+      "fecha": "2026-06-10",
+      "mes": "Junio",
+      "ot": "1162",
+      "detalle": "VERIFICACION DE LAVAVAJILLA (3 ítems)",
+      "total": 41.65,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1719586,
+      "fecha": "2026-06-26",
+      "mes": "Junio",
+      "ot": "1275",
+      "detalle": "CAMION1 (4 ítems)",
+      "total": 39.95,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1700507,
+      "fecha": "2026-06-03",
+      "mes": "Junio",
+      "ot": "1068",
+      "detalle": "COCINA CALIENTE",
+      "total": 36.3,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1703029,
+      "fecha": "2026-06-06",
+      "mes": "Junio",
+      "ot": "1029",
+      "detalle": "MTTO MENSUAL//FILTRO BOLSA",
+      "total": 35.95,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1719597,
+      "fecha": "2026-06-26",
+      "mes": "Junio",
+      "ot": "1029",
+      "detalle": "PLANTA DE AGUA",
+      "total": 35.95,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1718105,
+      "fecha": "2026-06-24",
+      "mes": "Junio",
+      "ot": "1258",
+      "detalle": "MTTO MARCO DE PUERTA DE RESIDUOS (3 ítems)",
+      "total": 33.97,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1722327,
+      "fecha": "2026-06-27",
+      "mes": "Junio",
+      "ot": "1135",
+      "detalle": "MTTO DE LAVADEROS /TECHO PLANTA (2 ítems)",
+      "total": 28.1,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1723611,
+      "fecha": "2026-06-30",
+      "mes": "Junio",
+      "ot": "1302",
+      "detalle": "PULIDO Y CAMBIO DE LAVAMANOS (3 ítems)",
+      "total": 26.7,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1710987,
+      "fecha": "2026-06-16",
+      "mes": "Junio",
+      "ot": "1212",
+      "detalle": "OFICINA DE OPERACIONES PLANTA (3 ítems)",
+      "total": 26.21,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1723615,
+      "fecha": "2026-06-30",
+      "mes": "Junio",
+      "ot": "1294",
+      "detalle": "DELIMITACION EN AREA DE VAJILLA (4 ítems)",
+      "total": 25.98,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1709601,
+      "fecha": "2026-06-15",
+      "mes": "Junio",
+      "ot": "-",
+      "detalle": "TALLER MECANICA",
+      "total": 24.95,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1699068,
+      "fecha": "2026-06-01",
+      "mes": "Junio",
+      "ot": "1045",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO COCI… (3 ítems)",
+      "total": 21.29,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1715481,
+      "fecha": "2026-06-20",
+      "mes": "Junio",
+      "ot": "1239",
+      "detalle": "SOPORTE PARA CAMION AUX-857 (2 ítems)",
+      "total": 19.43,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1705985,
+      "fecha": "2026-06-10",
+      "mes": "Junio",
+      "ot": "1165",
+      "detalle": "SELLADO DE TUBERIA DE DESAGUE",
+      "total": 17.67,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1719135,
+      "fecha": "2026-06-25",
+      "mes": "Junio",
+      "ot": "1266",
+      "detalle": "PAREDES DE ENSAMBLAJE",
+      "total": 17.67,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1705718,
+      "fecha": "2026-06-09",
+      "mes": "Junio",
+      "ot": "1157",
+      "detalle": "CAMBIO DE LUMINARIAS EN CAMARA DE LAC…",
+      "total": 16.5,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1715195,
+      "fecha": "2026-06-19",
+      "mes": "Junio",
+      "ot": "1139",
+      "detalle": "CAMBIO DE TOMA CORRIENTE EN OFICINA D… (2 ítems)",
+      "total": 14.53,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1707506,
+      "fecha": "2026-06-13",
+      "mes": "Junio",
+      "ot": "1186",
+      "detalle": "COLOCACION DE JEBE EN PUERTAS",
+      "total": 13.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1716323,
+      "fecha": "2026-06-22",
+      "mes": "Junio",
+      "ot": "1241",
+      "detalle": "CAMBIO DE VALVULA / COCINA CALIENTE (4 ítems)",
+      "total": 12.83,
+      "grupo": "Mantenimiento",
+      "num_items": 4
+    },
+    {
+      "of": 1715907,
+      "fecha": "2026-06-20",
+      "mes": "Junio",
+      "ot": "1250",
+      "detalle": "APLICACION DE SILICONA DE ALTA TEMP F…",
+      "total": 12.56,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1707519,
+      "fecha": "2026-06-12",
+      "mes": "Junio",
+      "ot": "1183",
+      "detalle": "PROCESADOR DE ALIMENTOS",
+      "total": 9.95,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1715417,
+      "fecha": "2026-06-19",
+      "mes": "Junio",
+      "ot": "1110",
+      "detalle": "INSPECCION TRIMESTRAL BATIDORA",
+      "total": 9.95,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1715384,
+      "fecha": "2026-06-19",
+      "mes": "Junio",
+      "ot": "1107",
+      "detalle": "MANTENIMIENTO TRIMESTRAL BALANZA",
+      "total": 9.95,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1718101,
+      "fecha": "2026-06-24",
+      "mes": "Junio",
+      "ot": "1257",
+      "detalle": "LIMPIEZA DE DRENAJE",
+      "total": 9.44,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 1
+    },
+    {
+      "of": 1722336,
+      "fecha": "2026-06-29",
+      "mes": "Junio",
+      "ot": "1282",
+      "detalle": "REPARACION DE CODO ROTO /DESCONCHE (3 ítems)",
+      "total": 8.13,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1706926,
+      "fecha": "2026-06-11",
+      "mes": "Junio",
+      "ot": "1171",
+      "detalle": "ENCHAPADO DE LAVAMANOS",
+      "total": 7.25,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1722382,
+      "fecha": "2026-06-30",
+      "mes": "Junio",
+      "ot": "002",
+      "detalle": "GUIA T002-00001843",
+      "total": 7.24,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1700531,
+      "fecha": "2026-06-04",
+      "mes": "Junio",
+      "ot": "1072",
+      "detalle": "LIMPIEZA CON QUIMICO DE DESAGUE EN PL… (2 ítems)",
+      "total": 7.22,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 2
+    },
+    {
+      "of": 1715484,
+      "fecha": "2026-06-21",
+      "mes": "Junio",
+      "ot": "1239",
+      "detalle": "CAMION 6",
+      "total": 5.6,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1706852,
+      "fecha": "2026-06-11",
+      "mes": "Junio",
+      "ot": "1179",
+      "detalle": "CAMBIO DE LAMINA DE PUERTAS",
+      "total": 5.2,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1699065,
+      "fecha": "2026-06-01",
+      "mes": "Junio",
+      "ot": "1049",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO ABAT…",
+      "total": 5.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1699767,
+      "fecha": "2026-06-02",
+      "mes": "Junio",
+      "ot": "1059",
+      "detalle": "INYECTOR DE AIRE DE PANADERIA",
+      "total": 4.32,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1707508,
+      "fecha": "2026-06-13",
+      "mes": "Junio",
+      "ot": "1089",
+      "detalle": "ARRANQUE MENSUAL DE GRUPO ELECTROGENO",
+      "total": 3.6,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1699066,
+      "fecha": "2026-06-01",
+      "mes": "Junio",
+      "ot": "1046",
+      "detalle": "DESPACHADO POR ANDERSON ALVARADO COLO…",
+      "total": 1.95,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1722317,
+      "fecha": "2026-06-27",
+      "mes": "Junio",
+      "ot": "1280",
+      "detalle": "PUERTA DE DESECHOS",
+      "total": 1.75,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1705873,
+      "fecha": "2026-06-10",
+      "mes": "Junio",
+      "ot": "1164",
+      "detalle": "CAMBIO DE CAPACITOR SALA DE PREPARACI… (3 ítems)",
+      "total": 1.48,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1699771,
+      "fecha": "2026-06-03",
+      "mes": "Junio",
+      "ot": "1065",
+      "detalle": "PLANTA DE ENSAMBLAJE DELIMITACION DE …",
+      "total": 1.25,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1701280,
+      "fecha": "2026-06-05",
+      "mes": "Junio",
+      "ot": "1068",
+      "detalle": "MOVIMIENTO DE FORNILLONES Y HORNOS",
+      "total": 1.03,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1723549,
+      "fecha": "2026-06-30",
+      "mes": "Junio",
+      "ot": "1307",
+      "detalle": "AJUSTE DE SENSOR DE MOVIMIENTO",
+      "total": 0.84,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1723760,
+      "fecha": "2026-06-30",
+      "mes": "Junio",
+      "ot": "1301",
+      "detalle": "CAMBIO DE INTERRUPTOR",
+      "total": 0.56,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1709596,
+      "fecha": "2026-06-15",
+      "mes": "Junio",
+      "ot": "1200",
+      "detalle": "CAMBIO DE GRIFERIA DE SSHH",
+      "total": 0.42,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    }
+  ],
+  "Julio": [
+    {
+      "of": 1736227,
+      "fecha": "2026-07-15",
+      "mes": "Julio",
+      "ot": "1397",
+      "detalle": "LAVAVAJILLA (4 ítems)",
+      "total": 3491.13,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1731432,
+      "fecha": "2026-07-08",
+      "mes": "Julio",
+      "ot": "1367",
+      "detalle": "CAMBIO DE PULMONES DE FRENO, CAMION 11 (2 ítems)",
+      "total": 3317.85,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1738110,
+      "fecha": "2026-07-17",
+      "mes": "Julio",
+      "ot": "1424",
+      "detalle": "/1425/1426 TALLER MECANICA (7 ítems)",
+      "total": 1101.49,
+      "grupo": "Otros",
+      "num_items": 7
+    },
+    {
+      "of": 1749588,
+      "fecha": "2026-07-28",
+      "mes": "Julio",
+      "ot": "-",
+      "detalle": "LAMAS",
+      "total": 956.7,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1738099,
+      "fecha": "2026-07-17",
+      "mes": "Julio",
+      "ot": "1420",
+      "detalle": "Sin detalle",
+      "total": 830.5,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1734275,
+      "fecha": "2026-07-14",
+      "mes": "Julio",
+      "ot": "000",
+      "detalle": "TALLER MECANICA VEHICULO 809 (3 ítems)",
+      "total": 623.7,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1741454,
+      "fecha": "2026-07-22",
+      "mes": "Julio",
+      "ot": "1457",
+      "detalle": "Sin detalle",
+      "total": 520.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1729587,
+      "fecha": "2026-07-05",
+      "mes": "Julio",
+      "ot": "1371",
+      "detalle": "MTTO CORRECTIVO CONGELADOR 2 (8 ítems)",
+      "total": 457.77,
+      "grupo": "Otros",
+      "num_items": 8
+    },
+    {
+      "of": 1740360,
+      "fecha": "2026-07-21",
+      "mes": "Julio",
+      "ot": "1440",
+      "detalle": "TALLER MECANICA MTTO N300 (7 ítems)",
+      "total": 450.91,
+      "grupo": "Otros",
+      "num_items": 7
+    },
+    {
+      "of": 1731553,
+      "fecha": "2026-07-07",
+      "mes": "Julio",
+      "ot": "1344",
+      "detalle": "INSTALACION DE PISTOLA DE AGUA (3 ítems)",
+      "total": 361.2,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1740586,
+      "fecha": "2026-07-20",
+      "mes": "Julio",
+      "ot": "1431",
+      "detalle": "Sin detalle",
+      "total": 338.73,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1749611,
+      "fecha": "2026-07-30",
+      "mes": "Julio",
+      "ot": "1371",
+      "detalle": "CONGELADOR 2 DEL 22/7/26",
+      "total": 338.73,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1743940,
+      "fecha": "2026-07-24",
+      "mes": "Julio",
+      "ot": "1470",
+      "detalle": "TALLER MECANICA",
+      "total": 306.36,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1738107,
+      "fecha": "2026-07-17",
+      "mes": "Julio",
+      "ot": "-",
+      "detalle": "TALLER MECANICA (3 ítems)",
+      "total": 281.36,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1727974,
+      "fecha": "2026-07-04",
+      "mes": "Julio",
+      "ot": "1321",
+      "detalle": "CAMBIO DE LUMINARIAS (6 ítems)",
+      "total": 246.6,
+      "grupo": "Mantenimiento",
+      "num_items": 6
+    },
+    {
+      "of": 1743466,
+      "fecha": "2026-07-21",
+      "mes": "Julio",
+      "ot": "1437",
+      "detalle": "OFICINA OPERACIONES (7 ítems)",
+      "total": 238.15,
+      "grupo": "Otros",
+      "num_items": 7
+    },
+    {
+      "of": 1725813,
+      "fecha": "2026-07-02",
+      "mes": "Julio",
+      "ot": "1318",
+      "detalle": "CAMBIO DE VISAGRAS EN LAVAVAJILLAS",
+      "total": 200.8,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1747827,
+      "fecha": "2026-07-29",
+      "mes": "Julio",
+      "ot": "1496",
+      "detalle": "Sin detalle (2 ítems)",
+      "total": 193.2,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1743947,
+      "fecha": "2026-07-24",
+      "mes": "Julio",
+      "ot": "1471",
+      "detalle": "Sin detalle (3 ítems)",
+      "total": 178.35,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1734262,
+      "fecha": "2026-07-11",
+      "mes": "Julio",
+      "ot": "-",
+      "detalle": "TALLER MECANICA (2 ítems)",
+      "total": 170.65,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1733740,
+      "fecha": "2026-07-11",
+      "mes": "Julio",
+      "ot": "1339",
+      "detalle": "CAMBIO DE LUMINARIAS (4 ítems)",
+      "total": 168.25,
+      "grupo": "Mantenimiento",
+      "num_items": 4
+    },
+    {
+      "of": 1732167,
+      "fecha": "2026-07-10",
+      "mes": "Julio",
+      "ot": "1339",
+      "detalle": "CAMBIO DE LUMINARIAS (5 ítems)",
+      "total": 159.28,
+      "grupo": "Mantenimiento",
+      "num_items": 5
+    },
+    {
+      "of": 1740637,
+      "fecha": "2026-07-21",
+      "mes": "Julio",
+      "ot": "1446",
+      "detalle": "Sin detalle",
+      "total": 141.56,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1740641,
+      "fecha": "2026-07-21",
+      "mes": "Julio",
+      "ot": "-",
+      "detalle": "REACTIVOS DE PLANTA DE AGUA",
+      "total": 139.72,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1741819,
+      "fecha": "2026-07-22",
+      "mes": "Julio",
+      "ot": "000",
+      "detalle": "TALLER MECANICA ARTICULOS DE LIMPIEZA (4 ítems)",
+      "total": 134.82,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 4
+    },
+    {
+      "of": 1729596,
+      "fecha": "2026-07-08",
+      "mes": "Julio",
+      "ot": "1048",
+      "detalle": "/1049 REGULARIZACION MTTO CAMARA DE P… (5 ítems)",
+      "total": 126.61,
+      "grupo": "Otros",
+      "num_items": 5
+    },
+    {
+      "of": 1732169,
+      "fecha": "2026-07-10",
+      "mes": "Julio",
+      "ot": "1392",
+      "detalle": "Sin detalle (2 ítems)",
+      "total": 111.3,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1749604,
+      "fecha": "2026-07-31",
+      "mes": "Julio",
+      "ot": "1504",
+      "detalle": "Sin detalle",
+      "total": 101.69,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1738102,
+      "fecha": "2026-07-16",
+      "mes": "Julio",
+      "ot": "1418",
+      "detalle": "Sin detalle (8 ítems)",
+      "total": 92.5,
+      "grupo": "Otros",
+      "num_items": 8
+    },
+    {
+      "of": 1727709,
+      "fecha": "2026-07-06",
+      "mes": "Julio",
+      "ot": "1339",
+      "detalle": "CAMBIO DE LUMINARIAS (2 ítems)",
+      "total": 86.86,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1738094,
+      "fecha": "2026-07-15",
+      "mes": "Julio",
+      "ot": "1416",
+      "detalle": "Sin detalle (4 ítems)",
+      "total": 79.03,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1732156,
+      "fecha": "2026-07-10",
+      "mes": "Julio",
+      "ot": "1393",
+      "detalle": "Sin detalle",
+      "total": 70.68,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1731548,
+      "fecha": "2026-07-07",
+      "mes": "Julio",
+      "ot": "1345",
+      "detalle": "LIMPIEZA DE MESA EN PLANTA",
+      "total": 59.65,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 1
+    },
+    {
+      "of": 1749581,
+      "fecha": "2026-07-30",
+      "mes": "Julio",
+      "ot": "-",
+      "detalle": "TALLER MECANICA (2 ítems)",
+      "total": 42.01,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1731573,
+      "fecha": "2026-07-08",
+      "mes": "Julio",
+      "ot": "1370",
+      "detalle": "ENCHAPADO DE FURGON (2 ítems)",
+      "total": 32.67,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1740581,
+      "fecha": "2026-07-18",
+      "mes": "Julio",
+      "ot": "1434",
+      "detalle": "Sin detalle (2 ítems)",
+      "total": 31.49,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1743952,
+      "fecha": "2026-07-24",
+      "mes": "Julio",
+      "ot": "1467",
+      "detalle": "Sin detalle (2 ítems)",
+      "total": 31.41,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1731587,
+      "fecha": "2026-07-08",
+      "mes": "Julio",
+      "ot": "1366",
+      "detalle": "RETIRAR CORTINAS DE PUERTAS (3 ítems)",
+      "total": 28.07,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1738097,
+      "fecha": "2026-07-16",
+      "mes": "Julio",
+      "ot": "1419",
+      "detalle": "Sin detalle (8 ítems)",
+      "total": 26.1,
+      "grupo": "Otros",
+      "num_items": 8
+    },
+    {
+      "of": 1729608,
+      "fecha": "2026-07-06",
+      "mes": "Julio",
+      "ot": "1325",
+      "detalle": "REGULARIZACION (4 ítems)",
+      "total": 24.59,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1725806,
+      "fecha": "2026-07-03",
+      "mes": "Julio",
+      "ot": "1322",
+      "detalle": "CAMBIO DE FAJA SELLADORA DE BOLSA",
+      "total": 24.5,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1731635,
+      "fecha": "2026-07-09",
+      "mes": "Julio",
+      "ot": "1212",
+      "detalle": "PINTADO DE OFICINA OPERACIONES (3 ítems)",
+      "total": 22.54,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1743923,
+      "fecha": "2026-07-23",
+      "mes": "Julio",
+      "ot": "1463",
+      "detalle": "PINTADO DE TUBERIAS OFICINA DE OPERAC… (2 ítems)",
+      "total": 20.77,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1747812,
+      "fecha": "2026-07-28",
+      "mes": "Julio",
+      "ot": "1488",
+      "detalle": "ANP809 (2 ítems)",
+      "total": 17.9,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1747825,
+      "fecha": "2026-07-27",
+      "mes": "Julio",
+      "ot": "-",
+      "detalle": "Sin detalle (6 ítems)",
+      "total": 17.83,
+      "grupo": "Otros",
+      "num_items": 6
+    },
+    {
+      "of": 1736226,
+      "fecha": "2026-07-14",
+      "mes": "Julio",
+      "ot": "1402",
+      "detalle": "Sin detalle",
+      "total": 16.5,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1741541,
+      "fecha": "2026-07-22",
+      "mes": "Julio",
+      "ot": "-",
+      "detalle": "TRAMPA DE GRASA (2 ítems)",
+      "total": 16.13,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1732166,
+      "fecha": "2026-07-10",
+      "mes": "Julio",
+      "ot": "1390",
+      "detalle": "Sin detalle",
+      "total": 11.6,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1743481,
+      "fecha": "2026-07-24",
+      "mes": "Julio",
+      "ot": "1458",
+      "detalle": "Sin detalle",
+      "total": 11.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1749551,
+      "fecha": "2026-07-31",
+      "mes": "Julio",
+      "ot": "1354",
+      "detalle": "Sin detalle (2 ítems)",
+      "total": 10.75,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1731551,
+      "fecha": "2026-07-07",
+      "mes": "Julio",
+      "ot": "1343",
+      "detalle": "CAMBIO DE CPVC",
+      "total": 10.44,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1733747,
+      "fecha": "2026-07-12",
+      "mes": "Julio",
+      "ot": "1391",
+      "detalle": "BATIDORA",
+      "total": 10.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1725816,
+      "fecha": "2026-07-01",
+      "mes": "Julio",
+      "ot": "1306",
+      "detalle": "PINTADO DE VEREDA",
+      "total": 9.1,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1743943,
+      "fecha": "2026-07-25",
+      "mes": "Julio",
+      "ot": "1472",
+      "detalle": "CAMARA DE EMBUTIDOS",
+      "total": 8.97,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1731431,
+      "fecha": "2026-07-09",
+      "mes": "Julio",
+      "ot": "1384",
+      "detalle": "LIMPIEZA DE VENTILADORES PLANTA (2 ítems)",
+      "total": 8.5,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 2
+    },
+    {
+      "of": 1741416,
+      "fecha": "2026-07-21",
+      "mes": "Julio",
+      "ot": "1383",
+      "detalle": "Sin detalle",
+      "total": 8.5,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1734272,
+      "fecha": "2026-07-13",
+      "mes": "Julio",
+      "ot": "000",
+      "detalle": "TALLER MECANICA HYUNDA CRETA",
+      "total": 6.17,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1727701,
+      "fecha": "2026-07-05",
+      "mes": "Julio",
+      "ot": "1336",
+      "detalle": "SECADO DE TECHO CAMARA (2 ítems)",
+      "total": 5.81,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1748067,
+      "fecha": "2026-07-27",
+      "mes": "Julio",
+      "ot": "1473",
+      "detalle": "Sin detalle",
+      "total": 5.5,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1731555,
+      "fecha": "2026-07-07",
+      "mes": "Julio",
+      "ot": "-",
+      "detalle": "TALLER MECANICA",
+      "total": 5.4,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1733756,
+      "fecha": "2026-07-11",
+      "mes": "Julio",
+      "ot": "1395",
+      "detalle": "CAMBIO DE TRAMPA PVC (2 ítems)",
+      "total": 5.22,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1731605,
+      "fecha": "2026-07-09",
+      "mes": "Julio",
+      "ot": "1373",
+      "detalle": "LIMPIEZA DE OFICINA DE OPERACIONES",
+      "total": 3.5,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 1
+    }
+  ],
+  "Agosto": [
+    {
+      "of": 1751757,
+      "fecha": "2026-08-01",
+      "mes": "Agosto",
+      "ot": "-",
+      "detalle": "PLACAS DE EQUIPOS Y AREAS (2 ítems)",
+      "total": 2740.3,
+      "grupo": "Activos < 1/4 UIT",
+      "num_items": 2
+    },
+    {
+      "of": 1777198,
+      "fecha": "2026-08-31",
+      "mes": "Agosto",
+      "ot": "-",
+      "detalle": "CAMBIO DE CERRADURAS A CAMBROS (3 ítems)",
+      "total": 1536.23,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1755747,
+      "fecha": "2026-08-07",
+      "mes": "Agosto",
+      "ot": "-",
+      "detalle": "REPUESTO DE MAQUINA DESATORADOR (2 ítems)",
+      "total": 1144.07,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1751756,
+      "fecha": "2026-08-01",
+      "mes": "Agosto",
+      "ot": "1513",
+      "detalle": "INSTALACION DE RESISTENCIAS EN LAVAVA…",
+      "total": 1011.3,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1776543,
+      "fecha": "2026-08-29",
+      "mes": "Agosto",
+      "ot": "1661",
+      "detalle": "/1662 CAMBIO DE RUEDAS TABOLA 1 Y 2 (6 ítems)",
+      "total": 722.81,
+      "grupo": "Mantenimiento",
+      "num_items": 6
+    },
+    {
+      "of": 1755141,
+      "fecha": "2026-08-05",
+      "mes": "Agosto",
+      "ot": "1532",
+      "detalle": "PUERTA INFRACA (4 ítems)",
+      "total": 487.18,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1776524,
+      "fecha": "2026-08-29",
+      "mes": "Agosto",
+      "ot": "1664",
+      "detalle": "CAMBIO DE VENTILADOR DE UNIDAD EVAPOR…",
+      "total": 411.05,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1757567,
+      "fecha": "2026-08-08",
+      "mes": "Agosto",
+      "ot": "1550",
+      "detalle": "SUMINISTRO DE GAS REFRIGERANTE EN SAL… (3 ítems)",
+      "total": 340.82,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1761736,
+      "fecha": "2026-08-15",
+      "mes": "Agosto",
+      "ot": "1550",
+      "detalle": "SUMINISTRO GAS REFRIGERANTE SALA DE E…",
+      "total": 338.73,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1764901,
+      "fecha": "2026-08-17",
+      "mes": "Agosto",
+      "ot": "1610",
+      "detalle": "MTTO DE LIMPIEZA DE DRENAJES (5 ítems)",
+      "total": 301.74,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 5
+    },
+    {
+      "of": 1773132,
+      "fecha": "2026-08-26",
+      "mes": "Agosto",
+      "ot": "1648",
+      "detalle": "MTTO THERMOKING (2 ítems)",
+      "total": 297.23,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1764629,
+      "fecha": "2026-08-17",
+      "mes": "Agosto",
+      "ot": "1605",
+      "detalle": "TALLER MECANICA MTTO HYUNDAI CRETA (5 ítems)",
+      "total": 288.37,
+      "grupo": "Otros",
+      "num_items": 5
+    },
+    {
+      "of": 1773087,
+      "fecha": "2026-08-26",
+      "mes": "Agosto",
+      "ot": "1649",
+      "detalle": "MTTO BAÑO MARIA 6 TABOLAS (3 ítems)",
+      "total": 269.47,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1755114,
+      "fecha": "2026-08-04",
+      "mes": "Agosto",
+      "ot": "1527",
+      "detalle": "MTTO PINTADO DE ESTOCAS (7 ítems)",
+      "total": 197.13,
+      "grupo": "Otros",
+      "num_items": 7
+    },
+    {
+      "of": 1766189,
+      "fecha": "2026-08-19",
+      "mes": "Agosto",
+      "ot": "1618",
+      "detalle": "SILICONEADO EN ENSAMBLAJE (3 ítems)",
+      "total": 150.16,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1765291,
+      "fecha": "2026-08-19",
+      "mes": "Agosto",
+      "ot": "1614",
+      "detalle": "CAMBIO DE CERRADURA Y JUNTA CAMBRO (2 ítems)",
+      "total": 138.22,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1773112,
+      "fecha": "2026-08-26",
+      "mes": "Agosto",
+      "ot": "1651",
+      "detalle": "CAMBIO DE LLAVE TERMOMAGNÉTICA MONOFA…",
+      "total": 131.09,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1758191,
+      "fecha": "2026-08-10",
+      "mes": "Agosto",
+      "ot": "-",
+      "detalle": "INSTALACION DE TOMACORRIENTES EN TALL… (2 ítems)",
+      "total": 105.09,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1776661,
+      "fecha": "2026-08-30",
+      "mes": "Agosto",
+      "ot": "1674",
+      "detalle": "THERMOKING",
+      "total": 100.6,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1770060,
+      "fecha": "2026-08-24",
+      "mes": "Agosto",
+      "ot": "1642",
+      "detalle": "PUERTA INGRESO A PLANTA",
+      "total": 100.4,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1757553,
+      "fecha": "2026-08-08",
+      "mes": "Agosto",
+      "ot": "1549",
+      "detalle": "TABLERO STD CAMBIO DE LLAVE I10",
+      "total": 91.54,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1776581,
+      "fecha": "2026-08-29",
+      "mes": "Agosto",
+      "ot": "1648",
+      "detalle": "THERMOKING CAMION 1",
+      "total": 68.4,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1751813,
+      "fecha": "2026-08-03",
+      "mes": "Agosto",
+      "ot": "1523",
+      "detalle": "CAMBIO DE BURLETE (2 ítems)",
+      "total": 53.0,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1773126,
+      "fecha": "2026-08-27",
+      "mes": "Agosto",
+      "ot": "1659",
+      "detalle": "MTTO THERMOKING CAMIONES (5 ítems)",
+      "total": 42.79,
+      "grupo": "Otros",
+      "num_items": 5
+    },
+    {
+      "of": 1760695,
+      "fecha": "2026-08-12",
+      "mes": "Agosto",
+      "ot": "1574",
+      "detalle": "CAMBIO DE FAJA EN EXTRACTOR DE CAMPAN…",
+      "total": 40.9,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1773265,
+      "fecha": "2026-08-26",
+      "mes": "Agosto",
+      "ot": "1649",
+      "detalle": "BAÑO MARIA",
+      "total": 40.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1765293,
+      "fecha": "2026-08-19",
+      "mes": "Agosto",
+      "ot": "1615",
+      "detalle": "MASILLADO Y PINTADO DE MELAMINA EN IN… (2 ítems)",
+      "total": 36.52,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1770030,
+      "fecha": "2026-08-23",
+      "mes": "Agosto",
+      "ot": "1638",
+      "detalle": "MTTO CAMPANA EXTRACTORA (6 ítems)",
+      "total": 34.92,
+      "grupo": "Otros",
+      "num_items": 6
+    },
+    {
+      "of": 1766906,
+      "fecha": "2026-08-20",
+      "mes": "Agosto",
+      "ot": "1621",
+      "detalle": "LEVANTAMIENTO OBSERVACIONES EN PLANTA (8 ítems)",
+      "total": 34.66,
+      "grupo": "Otros",
+      "num_items": 8
+    },
+    {
+      "of": 1773103,
+      "fecha": "2026-08-27",
+      "mes": "Agosto",
+      "ot": "-",
+      "detalle": "PILAS 3A-KAREN",
+      "total": 31.8,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1755145,
+      "fecha": "2026-08-06",
+      "mes": "Agosto",
+      "ot": "1473",
+      "detalle": "CAMBIO DE LUMINARIAS (3 ítems)",
+      "total": 30.21,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1765205,
+      "fecha": "2026-08-16",
+      "mes": "Agosto",
+      "ot": "1616",
+      "detalle": "SELLADO DE REGISTRO EN PASADIZO Y CER… (3 ítems)",
+      "total": 27.03,
+      "grupo": "Otros",
+      "num_items": 3
+    },
+    {
+      "of": 1760651,
+      "fecha": "2026-08-11",
+      "mes": "Agosto",
+      "ot": "1573",
+      "detalle": "PINTADO DE ESTOCAS (4 ítems)",
+      "total": 26.04,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1751781,
+      "fecha": "2026-08-03",
+      "mes": "Agosto",
+      "ot": "1521",
+      "detalle": "MTTO DE ESTOCAS (4 ítems)",
+      "total": 22.25,
+      "grupo": "Otros",
+      "num_items": 4
+    },
+    {
+      "of": 1755123,
+      "fecha": "2026-08-05",
+      "mes": "Agosto",
+      "ot": "1534",
+      "detalle": "RACK DE OPERACIONES (2 ítems)",
+      "total": 21.5,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1761737,
+      "fecha": "2026-08-15",
+      "mes": "Agosto",
+      "ot": "1594",
+      "detalle": "LIMPIEZA CAMPANA EXTRACTORA (2 ítems)",
+      "total": 20.21,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 2
+    },
+    {
+      "of": 1773259,
+      "fecha": "2026-08-25",
+      "mes": "Agosto",
+      "ot": "-",
+      "detalle": "EPP JUAN GABRIEL",
+      "total": 20.0,
+      "grupo": "ZE.EPPS",
+      "num_items": 1
+    },
+    {
+      "of": 1773276,
+      "fecha": "2026-08-25",
+      "mes": "Agosto",
+      "ot": "-",
+      "detalle": "TALLER MECANICA-CONSUMIBLES (2 ítems)",
+      "total": 19.2,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1769011,
+      "fecha": "2026-08-22",
+      "mes": "Agosto",
+      "ot": "1626",
+      "detalle": "REACONDICIONAMIENTO DE BASE Y ESTRUCT… (2 ítems)",
+      "total": 16.78,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1753561,
+      "fecha": "2026-08-03",
+      "mes": "Agosto",
+      "ot": "1523",
+      "detalle": "CAMBIO DE BURLETE PUERTA PIVOTANTE (3 ítems)",
+      "total": 15.8,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1765172,
+      "fecha": "2026-08-16",
+      "mes": "Agosto",
+      "ot": "1617",
+      "detalle": "CORRECTIVO AMASADORA DE COCINA CALIENTE (2 ítems)",
+      "total": 15.15,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1758186,
+      "fecha": "2026-08-10",
+      "mes": "Agosto",
+      "ot": "1541",
+      "detalle": "MTTO ESTOCAS",
+      "total": 13.08,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1767892,
+      "fecha": "2026-08-21",
+      "mes": "Agosto",
+      "ot": "1622",
+      "detalle": "EXTRACCION DE AIRE EN CAMARA DE DESCO… (2 ítems)",
+      "total": 12.96,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1777199,
+      "fecha": "2026-08-31",
+      "mes": "Agosto",
+      "ot": "-",
+      "detalle": "CAMBIO DE BANDA DE TEFLON PERUPACK",
+      "total": 12.25,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1755110,
+      "fecha": "2026-08-04",
+      "mes": "Agosto",
+      "ot": "1528",
+      "detalle": "MTTO DESATORADOR",
+      "total": 10.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1767890,
+      "fecha": "2026-08-21",
+      "mes": "Agosto",
+      "ot": "1615",
+      "detalle": "MTTO SSHH MUJERES",
+      "total": 10.0,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1765222,
+      "fecha": "2026-08-19",
+      "mes": "Agosto",
+      "ot": "1602",
+      "detalle": "CAMBIO DE LUMINARIAS DESCONCHE (2 ítems)",
+      "total": 9.59,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1767889,
+      "fecha": "2026-08-22",
+      "mes": "Agosto",
+      "ot": "1621",
+      "detalle": "LEVANTAMIENTO DE OBSERVACIONES PLANTA",
+      "total": 8.69,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1776552,
+      "fecha": "2026-08-29",
+      "mes": "Agosto",
+      "ot": "1659",
+      "detalle": "MTTO THERMOKING (2 ítems)",
+      "total": 8.58,
+      "grupo": "Otros",
+      "num_items": 2
+    },
+    {
+      "of": 1753536,
+      "fecha": "2026-08-03",
+      "mes": "Agosto",
+      "ot": "1519",
+      "detalle": "REINSTALACION DE PUERTA PIVOTANTE (3 ítems)",
+      "total": 7.15,
+      "grupo": "Mantenimiento",
+      "num_items": 3
+    },
+    {
+      "of": 1766194,
+      "fecha": "2026-08-19",
+      "mes": "Agosto",
+      "ot": "1615",
+      "detalle": "MASILLA Y PINTADO DE MELAMINE DE INOD…",
+      "total": 6.8,
+      "grupo": "Otros",
+      "num_items": 1
+    },
+    {
+      "of": 1765242,
+      "fecha": "2026-08-18",
+      "mes": "Agosto",
+      "ot": "1594",
+      "detalle": "LIMPIEZA DE CAMPANA EXTRACTORA COCINA… (2 ítems)",
+      "total": 5.34,
+      "grupo": "NON FOOD COMPLEMENTOS",
+      "num_items": 2
+    },
+    {
+      "of": 1761594,
+      "fecha": "2026-08-14",
+      "mes": "Agosto",
+      "ot": "1591",
+      "detalle": "CAMBIO DE LUMINARIAS",
+      "total": 4.99,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    },
+    {
+      "of": 1773153,
+      "fecha": "2026-08-25",
+      "mes": "Agosto",
+      "ot": "1646",
+      "detalle": "INSTALACION DE ANCLAJES SUJETADORES P… (2 ítems)",
+      "total": 1.93,
+      "grupo": "Mantenimiento",
+      "num_items": 2
+    },
+    {
+      "of": 1760979,
+      "fecha": "2026-08-13",
+      "mes": "Agosto",
+      "ot": "1586",
+      "detalle": "CAMBIO DE TRAMPA EN LAVADO DE VUELO",
+      "total": 0.42,
+      "grupo": "Mantenimiento",
+      "num_items": 1
+    }
+  ]
+};
+        const meses = ["Abril", "Mayo", "Junio", "Julio", "Agosto"];
+        
+        const totalGeneral = monthlySummary.reduce((sum, d) => sum + d.total, 0);
+        const totalOfs = monthlySummary.reduce((sum, d) => sum + d.ofs, 0);
+        const totalOTs = monthlySummary.reduce((sum, d) => sum + d.ots, 0);
+        let currentMonth = 'all';
+        
+        let groupChartInstance = null, topChartInstance = null, monthlyChartInstance = null;
+
+        function generarBotonesMeses() {
+            const container = document.getElementById('monthSelector');
+            container.innerHTML = '<button class="month-btn active" data-month="all">📊 Todos</button>';
+            meses.forEach(mes => {
+                const btn = document.createElement('button');
+                btn.className = 'month-btn';
+                btn.dataset.month = mes;
+                btn.textContent = '📅 ' + mes;
+                container.appendChild(btn);
+            });
+            document.querySelectorAll('.month-btn').forEach(btn => {
+                btn.addEventListener('click', () => { updateDashboard(btn.dataset.month); });
+            });
+        }
+
+        function getMonthSummary(mes) {
+            if (mes === 'all') {
+                const topMes = monthlySummary.reduce((a, b) => a.total > b.total ? a : b);
+                return {
+                    total: totalGeneral,
+                    ofs: totalOfs,
+                    ots: totalOTs,
+                    promedio: totalGeneral / totalOfs,
+                    topTotal: topMes ? topMes.total : 0,
+                    topDetalle: topMes ? topMes.mes + ' (S/ ' + topMes.total.toFixed(2) + ')' : 'Sin datos'
+                };
+            }
+            const found = monthlySummary.find(d => d.mes === mes);
+            if (!found) return { total: 0, ofs: 0, ots: 0, promedio: 0, topTotal: 0, topDetalle: '' };
+            const data = detailData[mes] || [];
+            const top = data.length > 0 ? data.reduce((a, b) => a.total > b.total ? a : b) : null;
+            return {
+                total: found.total,
+                ofs: found.ofs,
+                ots: found.ots,
+                promedio: found.promedio || (found.total / found.ofs),
+                topTotal: top ? top.total : 0,
+                topDetalle: top ? top.detalle : 'Sin datos'
+            };
+        }
+
+        function renderKPIs(mes) {
+            const summary = getMonthSummary(mes);
+            document.getElementById('kpiTotal').textContent = 'S/ ' + summary.total.toFixed(2);
+            document.getElementById('kpiTotalSub').textContent = '+18% IGV → S/ ' + (summary.total * 1.18).toFixed(2);
+            document.getElementById('kpiOfs').textContent = summary.ofs;
+            document.getElementById('kpiOfsSub').textContent = mes === 'all' ? 'en el período' : 'en ' + mes;
+            document.getElementById('kpiOTs').textContent = summary.ots;
+            document.getElementById('kpiOTsSub').textContent = 'OTs distintas';
+            document.getElementById('kpiPromedio').textContent = 'S/ ' + summary.promedio.toFixed(2);
+            document.getElementById('kpiPromedioSub').textContent = 'por Output Form';
+            document.getElementById('kpiTop').textContent = 'S/ ' + summary.topTotal.toFixed(2);
+            document.getElementById('kpiTopSub').textContent = summary.topDetalle || 'Sin datos';
+            document.getElementById('kpiMes').textContent = mes === 'all' ? 'Todos' : mes;
+            document.getElementById('kpiMesSub').textContent = mes === 'all' ? meses.length + ' meses' : 'mes seleccionado';
+        }
+
+        function renderTable(mes) {
+            const tbody = document.getElementById('tableBody');
+            const title = document.getElementById('tableTitle');
+            const count = document.getElementById('tableCount');
+
+            if (mes === 'all') {
+                title.textContent = 'Todos los meses';
+                tbody.innerHTML = '';
+                monthlySummary.forEach(d => {
+                    const pct = ((d.total / totalGeneral) * 100).toFixed(1);
+                    const tr = document.createElement('tr');
+                    const color = d.total > 20000 ? '#e74c3c' : d.total > 15000 ? '#f39c12' : '#2c4a7a';
+                    tr.innerHTML = 
+                        '<td><strong>📅 ' + d.mes + '</strong></td>' +
+                        '<td>—</td>' +
+                        '<td>Resumen mensual</td>' +
+                        '<td><span class="tag tag-blue">' + d.ofs + ' OFs</span></td>' +
+                        '<td><span class="tag tag-green">' + d.ots + ' OTs</span></td>' +
+                        '<td class="highlight">S/ ' + d.total.toFixed(2) + '</td>' +
+                        '<td><span class="progress-bar"><span class="fill" style="width:' + pct + '%; background:' + color + ';"></span></span> ' + pct + '%</td>';
+                    tbody.appendChild(tr);
+                });
+                count.textContent = monthlySummary.length + ' meses';
+                return;
+            }
+
+            const data = detailData[mes] || [];
+            const mesTotal = monthlySummary.find(d => d.mes === mes)?.total || 0;
+            title.textContent = mes;
+            count.textContent = data.length + ' registros';
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:#7a8aa5;"><i class="fas fa-inbox" style="font-size:24px; display:block; margin-bottom:8px;"></i>No hay datos para este mes</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            const sorted = [...data].sort((a, b) => b.total - a.total);
+            sorted.forEach(d => {
+                const pct = mesTotal > 0 ? ((d.total / mesTotal) * 100).toFixed(1) : 0;
+                const tr = document.createElement('tr');
+                const color = d.total > 500 ? '#e74c3c' : d.total > 200 ? '#f39c12' : '#2c4a7a';
+                const itemsInfo = d.num_items && d.num_items > 1 ? ' <span class="item-count">' + d.num_items + ' ítems</span>' : '';
+                tr.innerHTML = 
+                    '<td><strong>' + d.of + '</strong></td>' +
+                    '<td>' + d.fecha + '</td>' +
+                    '<td>' + d.detalle + itemsInfo + '</td>' +
+                    '<td><span class="tag tag-blue">' + d.grupo + '</span></td>' +
+                    '<td><span class="tag tag-green">' + (d.ot || '-') + '</span></td>' +
+                    '<td class="highlight">S/ ' + d.total.toFixed(2) + '</td>' +
+                    '<td><span class="progress-bar"><span class="fill" style="width:' + pct + '%; background:' + color + ';"></span></span> ' + pct + '%</td>';
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCharts(mes) {
+            if (groupChartInstance) { groupChartInstance.destroy(); groupChartInstance = null; }
+            if (topChartInstance) { topChartInstance.destroy(); topChartInstance = null; }
+            if (monthlyChartInstance) { monthlyChartInstance.destroy(); monthlyChartInstance = null; }
+
+            const evolucionCard = document.getElementById('chartEvolucion');
+            if (mes === 'all') { evolucionCard.classList.remove('hidden'); } else { evolucionCard.classList.add('hidden'); }
+
+            const groupCtx = document.getElementById('groupChart').getContext('2d');
+            let groupData = {};
+            if (mes === 'all') {
+                const grupos = {};
+                Object.keys(detailData).forEach(m => {
+                    detailData[m].forEach(d => {
+                        grupos[d.grupo] = (grupos[d.grupo] || 0) + d.total;
+                    });
+                });
+                if (Object.keys(grupos).length === 0) grupos['Sin datos'] = 1;
+                groupData = grupos;
+            } else {
+                const data = detailData[mes] || [];
+                const grupos = {};
+                data.forEach(d => { grupos[d.grupo] = (grupos[d.grupo] || 0) + d.total; });
+                if (Object.keys(grupos).length === 0) grupos['Sin datos'] = 1;
+                groupData = grupos;
+            }
+
+            const colors = ['#2c4a7a', '#4a8aaa', '#6ac9aa', '#f5a623', '#e74c3c', '#95a5a6', '#8e44ad', '#2ecc71'];
+            groupChartInstance = new Chart(groupCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(groupData),
+                    datasets: [{ data: Object.values(groupData), backgroundColor: colors.slice(0, Object.keys(groupData).length) }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+
+            const topCtx = document.getElementById('topChart').getContext('2d');
+            let topData = [];
+            if (mes === 'all') {
+                const allItems = [];
+                Object.keys(detailData).forEach(m => {
+                    detailData[m].forEach(d => { allItems.push({ ...d, mes: m }); });
+                });
+                topData = allItems.sort((a, b) => b.total - a.total).slice(0, 5);
+            } else {
+                const data = detailData[mes] || [];
+                topData = data.sort((a, b) => b.total - a.total).slice(0, 5);
+                if (topData.length === 0) topData = [{ of: 'Sin datos', detalle: 'No hay registros', total: 1 }];
+            }
+
+            topChartInstance = new Chart(topCtx, {
+                type: 'bar',
+                data: {
+                    labels: topData.map(d => d.of + ' - ' + d.detalle.substring(0, 20) + (d.detalle.length > 20 ? '…' : '')),
+                    datasets: [{
+                        label: 'Total sin IGV (S/)',
+                        data: topData.map(d => d.total),
+                        backgroundColor: ['#2c4a7a', '#4a7aaa', '#6a9aca', '#8abada', '#aacae8'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => 'S/ ' + v.toFixed(0) } } }
+                }
+            });
+
+            if (mes === 'all') {
+                const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+                monthlyChartInstance = new Chart(monthlyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: monthlySummary.map(d => d.mes),
+                        datasets: [{
+                            label: 'Total sin IGV (S/)',
+                            data: monthlySummary.map(d => d.total),
+                            borderColor: '#2c4a7a',
+                            backgroundColor: 'rgba(44, 74, 122, 0.08)',
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#2c4a7a',
+                            pointRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { callback: v => 'S/ ' + v.toFixed(0) } } }
+                    }
+                });
+            }
+        }
+
+        function updateDashboard(mes) {
+            currentMonth = mes;
+            renderKPIs(mes);
+            renderTable(mes);
+            renderCharts(mes);
+            document.querySelectorAll('.month-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.month === mes);
+            });
+        }
+
+        document.getElementById('toggle-kpis').addEventListener('change', (e) => {
+            document.getElementById('section-kpis').classList.toggle('hidden', !e.target.checked);
+        });
+        document.getElementById('toggle-charts').addEventListener('change', (e) => {
+            document.getElementById('section-charts').classList.toggle('hidden', !e.target.checked);
+        });
+        document.getElementById('toggle-table').addEventListener('change', (e) => {
+            document.getElementById('section-table').classList.toggle('hidden', !e.target.checked);
+        });
+
+        generarBotonesMeses();
+        updateDashboard('all');
+        console.log('✅ Dashboard INFLIGHT cargado automáticamente!');
+    </script>
+</body>
+</html>

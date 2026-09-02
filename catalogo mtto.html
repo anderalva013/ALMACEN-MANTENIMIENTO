@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Almacén de Mantenimiento - Newrest</title>
+    <!-- Font Awesome para íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f4f7fc;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ENCABEZADO */
+        .header {
+            background: linear-gradient(135deg, #0a2f44, #1c5a7a);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            font-weight: 300;
+            font-size: 2rem;
+        }
+        .header h1 i {
+            margin-right: 12px;
+            color: #ffc107;
+        }
+        .header .stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .header .stats span {
+            background: rgba(255,255,255,0.15);
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+        }
+        .header .stats i {
+            margin-right: 8px;
+        }
+
+        /* BARRA DE BÚSQUEDA Y FILTROS */
+        .filters {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .filters input[type="text"] {
+            flex: 2;
+            min-width: 250px;
+            padding: 12px 20px;
+            border: 1px solid #ddd;
+            border-radius: 30px;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.3s;
+        }
+        .filters input[type="text"]:focus {
+            border-color: #1c5a7a;
+            box-shadow: 0 0 0 3px rgba(28, 90, 122, 0.2);
+        }
+
+        .filters select {
+            flex: 1;
+            min-width: 180px;
+            padding: 12px 20px;
+            border: 1px solid #ddd;
+            border-radius: 30px;
+            background: white;
+            font-size: 1rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filters .btn-reset {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .filters .btn-reset:hover {
+            background: #c0392b;
+            transform: scale(1.03);
+        }
+
+        /* TARJETAS DEL CATÁLOGO (GRID) */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 14px 30px rgba(0,0,0,0.12);
+        }
+
+        /* CONTENEDOR DE IMAGEN CORREGIDO CON OVERFLOW HIDDEN */
+        .card-img {
+             width: 100%;
+             height: 180px;            /* Altura fija para todas las tarjetas */
+             background: #ffffff;      /* Fondo blanco para que combine con fotos con fondo blanco */
+             display: flex;
+             align-items: center;      /* Centra la foto verticalmente */
+             justify-content: center;  /* Centra la foto horizontalmente */
+             overflow: hidden;
+             padding: 10px;            /* Espacio interno para que no pegue a los bordes */
+        }
+
+        .card-img img {
+            max-width: 90%;          /* Deja un margen suave a los lados */
+   	    max-height: 90%;         /* Asegura que no se salga a lo alto */
+   	    width: auto;             /* Mantiene la proporción real de la foto */
+            height: auto;            /* Mantiene la proporción real de la foto */
+  	    object-fit: contain;     /* HACE QUE SE VEA COMPLETA SIN RECORTAR */
+    	    display: block;
+	}
+
+        .card-body {
+            padding: 18px 20px 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-body h3 {
+            font-size: 1.1rem;
+            color: #0a2f44;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+        .card-body .ref {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .card-body .detail {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+            font-size: 0.9rem;
+            color: #2c3e50;
+        }
+        .card-body .detail i {
+            width: 18px;
+            color: #1c5a7a;
+        }
+
+        .stock-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            align-self: flex-start;
+        }
+        .stock-alto { background: #d4edda; color: #155724; }
+        .stock-medio { background: #fff3cd; color: #856404; }
+        .stock-bajo { background: #f8d7da; color: #721c24; }
+
+        .card-footer {
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #555;
+        }
+
+        .card-footer .ubicacion {
+            background: #eef2f7;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        /* LOADER Y MENSAJES */
+        .loading-box, .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 20px;
+            color: #777;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 600px) {
+            .header { flex-direction: column; align-items: start; gap: 12px; }
+            .header h1 { font-size: 1.5rem; }
+            .filters { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ENCABEZADO -->
+    <div class="header">
+        <h1><i class="fas fa-toolbox"></i> Almacén de Mantenimiento</h1>
+        <div class="stats">
+            <span><i class="fas fa-cubes"></i> <span id="totalItems">0</span> artículos</span>
+            <span><i class="fas fa-exclamation-triangle"></i> <span id="bajoStock">0</span> stock bajo</span>
+        </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="filters">
+        <input type="text" id="searchInput" placeholder="🔍 Buscar por nombre, código o ubicación...">
+        <select id="categoryFilter">
+            <option value="all">Todas las familias</option>
+        </select>
+        <select id="stockFilter">
+            <option value="all">Todos los stocks</option>
+            <option value="alto">Stock alto (>20)</option>
+            <option value="medio">Stock medio (6-20)</option>
+            <option value="bajo">Stock bajo (≤5)</option>
+        </select>
+        <button class="btn-reset" id="resetBtn"><i class="fas fa-undo-alt"></i> Reset</button>
+    </div>
+
+    <!-- GRID DE TARJETAS -->
+    <div class="grid" id="catalogGrid">
+        <div class="loading-box">
+            <i class="fas fa-spinner fa-spin" style="font-size:3rem; margin-bottom:15px; color:#1c5a7a;"></i>
+            <p>Cargando catálogo desde Google Sheets...</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --------------------------------------------------------------
+    //  URL DE TU API DE GOOGLE APPS SCRIPT
+    // --------------------------------------------------------------
+    const API_URL = "https://script.google.com/macros/s/AKfycbxSuoYnrb24DzaY_xOgZqO59tU54K3WeDpIsIc1PygCWA_P2V-Edkw8snsQ_SfLfpw7/exec";
+
+    let inventario = [];
+
+    const grid = document.getElementById('catalogGrid');
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const stockFilter = document.getElementById('stockFilter');
+    const resetBtn = document.getElementById('resetBtn');
+    const totalItemsSpan = document.getElementById('totalItems');
+    const bajoStockSpan = document.getElementById('bajoStock');
+
+    // Mapeo e inserción de íconos o imágenes blindadas con onerror
+    function resolveIcon(item) {
+        // Si el ítem trae una URL directa de imagen web o Drive convertida
+        if (item.imagen && (item.imagen.startsWith('http://') || item.imagen.startsWith('https://'))) {
+            let backupIcon = getCategoryIconClass(item);
+            return `<img src="${item.imagen}" alt="${item.nombre}" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\\'fas ${backupIcon}\\'></i>';">`;
+        }
+        
+        let iconClass = (item.imagen && item.imagen.startsWith('fa-')) ? item.imagen : getCategoryIconClass(item);
+        return `<i class="fas ${iconClass}"></i>`;
+    }
+
+    function getCategoryIconClass(item) {
+        const cat = (item.categoria || '').toUpperCase();
+        if (cat.includes('ELECTRICIDAD')) return 'fa-bolt';
+        if (cat.includes('REFRIGERACIÓN')) return 'fa-snowflake';
+        if (cat.includes('COCINA')) return 'fa-utensils';
+        if (cat.includes('PLOMERÍA')) return 'fa-faucet';
+        if (cat.includes('MECÁNICA')) return 'fa-cogs';
+        if (cat.includes('FERRETERÍA')) return 'fa-tools';
+        if (cat.includes('HERRAMIENTAS')) return 'fa-wrench';
+        if (cat.includes('EPP')) return 'fa-user-shield';
+        return 'fa-box-open';
+    }
+
+    function getStockBadge(stock) {
+        if (stock > 20) return '<span class="stock-badge stock-alto"><i class="fas fa-arrow-up"></i> Alto</span>';
+        else if (stock >= 6) return '<span class="stock-badge stock-medio"><i class="fas fa-minus"></i> Medio</span>';
+        else return '<span class="stock-badge stock-bajo"><i class="fas fa-arrow-down"></i> Bajo</span>';
+    }
+
+    function cleanUnit(unitStr) {
+        if (!unitStr) return 'UND';
+        let str = String(unitStr).trim();
+        // Corrige duplicaciones como "UND 1 UND"
+        if (str.toUpperCase().includes('UND')) return 'UND';
+        return str;
+    }
+
+    function renderCards(items) {
+        if (items.length === 0) {
+            grid.innerHTML = `<div class="no-results"><i class="fas fa-search" style="font-size:3rem; display:block; margin-bottom:15px;"></i> No se encontraron artículos registrados.</div>`;
+            return;
+        }
+
+        let html = '';
+        items.forEach(item => {
+            html += `
+                <div class="card">
+                    <div class="card-img">
+                        ${resolveIcon(item)}
+                    </div>
+                    <div class="card-body">
+                        <h3>${item.nombre}</h3>
+                        <div class="ref"><i class="fas fa-hashtag"></i> Código: ${item.id}</div>
+                        <div class="detail"><i class="fas fa-folder"></i> <b>${item.categoria}</b></div>
+                        ${item.subcategoria ? `<div class="detail"><i class="fas fa-layer-group"></i> ${item.subcategoria}</div>` : ''}
+                        
+                        <div style="margin: 8px 0;">
+                            ${getStockBadge(item.stock)} 
+                            <span style="margin-left:8px; font-weight:600;">${item.stock} ${cleanUnit(item.unidad)}</span>
+                        </div>
+                        <div class="card-footer">
+                            <span><i class="fas fa-map-pin"></i> <span class="ubicacion">${item.ubicacion}</span></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        grid.innerHTML = html;
+    }
+
+    function populateCategoryDropdown(items) {
+        const categories = [...new Set(items.map(i => i.categoria))].filter(Boolean).sort();
+        categoryFilter.innerHTML = '<option value="all">Todas las familias</option>';
+        categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = cat;
+            categoryFilter.appendChild(opt);
+        });
+    }
+
+    function filterItems() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const category = categoryFilter.value;
+        const stockLevel = stockFilter.value;
+
+        const filtered = inventario.filter(item => {
+            const matchSearch = 
+                String(item.nombre).toLowerCase().includes(searchTerm) ||
+                String(item.id).toLowerCase().includes(searchTerm) ||
+                String(item.ubicacion).toLowerCase().includes(searchTerm) ||
+                String(item.categoria).toLowerCase().includes(searchTerm) ||
+                String(item.subcategoria).toLowerCase().includes(searchTerm);
+
+            const matchCategory = (category === 'all' || item.categoria === category);
+
+            let matchStock = true;
+            if (stockLevel === 'alto') matchStock = (item.stock > 20);
+            else if (stockLevel === 'medio') matchStock = (item.stock >= 6 && item.stock <= 20);
+            else if (stockLevel === 'bajo') matchStock = (item.stock <= 5);
+
+            return matchSearch && matchCategory && matchStock;
+        });
+
+        totalItemsSpan.textContent = filtered.length;
+        bajoStockSpan.textContent = filtered.filter(item => item.stock <= 5).length;
+
+        renderCards(filtered);
+    }
+
+    async function loadDataFromSheets() {
+        try {
+            const response = await fetch(API_URL, { redirect: "follow" });
+            if (!response.ok) {
+                throw new Error(`HTTP Error: ${response.status}`);
+            }
+            inventario = await response.json();
+            
+            if (!Array.isArray(inventario)) {
+                throw new Error("Formato no válido recibido de Apps Script.");
+            }
+
+            populateCategoryDropdown(inventario);
+            filterItems();
+        } catch (error) {
+            console.error("Error al cargar Google Sheets:", error);
+            grid.innerHTML = `
+                <div class="no-results" style="color: #c0392b;">
+                    <i class="fas fa-exclamation-triangle" style="font-size:3rem; display:block; margin-bottom:15px;"></i>
+                    <p><b>Error al cargar datos.</b></p>
+                    <p style="font-size:0.9rem; margin-top:8px; color:#555;">
+                        Verifica que en Google Apps Script la opción <i>"Quién tiene acceso"</i> esté en <b>"Cualquier persona"</b> y hayas guardado el despliegue.
+                    </p>
+                </div>`;
+        }
+    }
+
+    function resetFilters() {
+        searchInput.value = '';
+        categoryFilter.value = 'all';
+        stockFilter.value = 'all';
+        filterItems();
+    }
+
+    searchInput.addEventListener('input', filterItems);
+    categoryFilter.addEventListener('change', filterItems);
+    stockFilter.addEventListener('change', filterItems);
+    resetBtn.addEventListener('click', resetFilters);
+
+    // Cargar datos al iniciar la página
+    loadDataFromSheets();
+</script>
+
+</body>
+</html>

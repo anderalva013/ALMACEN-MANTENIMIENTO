@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>📊 Dashboard Almacén</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Segoe UI', -apple-system, Roboto, sans-serif;
+    background: #f5f7fa;
+    color: #202124;
+    padding: 0 24px 32px;
+    min-height: 100vh;
+  }
+
+  /* ═══════════ HEADER ═══════════ */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+    color: #fff;
+    padding: 20px 28px;
+    border-radius: 0 0 16px 16px;
+    margin: 0 -24px 24px;
+    box-shadow: 0 4px 12px rgba(26, 115, 232, 0.25);
+  }
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  
+  .header-logo {
+    width: 52px;
+    height: 52px;
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    backdrop-filter: blur(6px);
+  }
+  
+  .header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    margin-bottom: 3px;
+  }
+  
+  .header-sub {
+    font-size: 12.5px;
+    opacity: 0.88;
+    font-weight: 400;
+  }
+  
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #34d058;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(52, 208, 88, 0.3);
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(52, 208, 88, 0.3); }
+    50%      { box-shadow: 0 0 0 6px rgba(52, 208, 88, 0.1); }
+  }
+  
+  .live-text {
+    font-size: 12.5px;
+    opacity: 0.9;
+    margin-right: 6px;
+  }
+  
+  .btn-refresh {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  
+  .btn-refresh:hover {
+    background: rgba(255, 255, 255, 0.28);
+    transform: translateY(-1px);
+  }
+  
+  .btn-refresh:active {
+    transform: translateY(0);
+  }
+  
+  .refresh-icon {
+    display: inline-block;
+    transition: transform 0.4s;
+  }
+  
+  .btn-refresh.loading .refresh-icon {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* ═══════════ TABS ═══════════ */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    background: #fff;
+    padding: 6px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    width: fit-content;
+  }
+  
+  .tab {
+    background: transparent;
+    color: #5f6368;
+    border: none;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  
+  .tab:hover { color: #1a73e8; background: #f8f9fa; }
+  
+  .tab.active {
+    color: #fff;
+    background: #1a73e8;
+    box-shadow: 0 2px 6px rgba(26, 115, 232, 0.35);
+  }
+  
+  .tab-icon { font-size: 15px; }
+
+  /* ═══════════ RESTO DE LA APP ═══════════ */
+  .tab-content { animation: fadeIn 0.2s; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .toolbar-filtros {
+    display: flex; gap: 12px; align-items: center;
+    margin-bottom: 20px; flex-wrap: wrap;
+    background: #fff; padding: 12px 16px;
+    border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  input, select, button {
+    padding: 8px 12px; border: 1px solid #dadce0; border-radius: 6px;
+    font-size: 14px; font-family: inherit;
+  }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 24px;
+  }
+  .kpi {
+    background: #fff; padding: 16px; border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border-left: 4px solid #1a73e8;
+  }
+  .kpi .label { font-size: 12px; color: #5f6368; text-transform: uppercase; }
+  .kpi .valor { font-size: 26px; font-weight: 700; margin-top: 6px; }
+  .kpi.alerta { border-left-color: #ea4335; }
+  .kpi.ok     { border-left-color: #34a853; }
+  .kpi.warn   { border-left-color: #fbbc04; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 16px; margin-bottom: 24px;
+  }
+  .card {
+    background: #fff; padding: 16px; border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .card h3 { font-size: 14px; margin-bottom: 12px; color: #202124; }
+  .card canvas { max-height: 280px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e8eaed; }
+  th { background: #f1f3f4; font-weight: 600; position: sticky; top: 0; }
+  tr:hover { background: #f8f9fa; }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge.V { background: #fce8e6; color: #c5221f; }
+  .badge.E { background: #fef7e0; color: #b06000; }
+  .badge.D { background: #e6f4ea; color: #137333; }
+  .badge.A { background: #fce8e6; color: #c5221f; }
+  .badge.B { background: #fef7e0; color: #b06000; }
+  .badge.C { background: #e6f4ea; color: #137333; }
+  .badge.SIN-STOCK      { background: #fce8e6; color: #c5221f; }
+  .badge.BAJO-MÍNIMO    { background: #fef7e0; color: #b06000; }
+  .badge.SOBRE-STOCK    { background: #e8f0fe; color: #1a73e8; }
+  .badge.OK             { background: #e6f4ea; color: #137333; }
+  .badge.CAPITAL-MUERTO { background: #f3e5f5; color: #6a1b9a; }
+
+  .estado { text-align: center; padding: 40px; color: #5f6368; }
+  .error { background: #fce8e6; color: #c5221f; padding: 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">📊</div>
+    <div>
+      <h1>Dashboard de Almacén</h1>
+      <div class="header-sub" id="subtitulo">Conectando con Google Sheets...</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="live-dot"></span>
+    <span class="live-text">En línea</span>
+    <button class="btn-refresh" onclick="cargar()" title="Recargar datos">
+      <span class="refresh-icon">🔄</span> Actualizar
+    </button>
+  </div>
+</header>
+
+<!-- ═══════════ TABS ═══════════ -->
+<nav class="tabs">
+  <button class="tab active" data-tab="almacen" onclick="cambiarTab('almacen', this)">
+    <span class="tab-icon">📦</span> Almacén
+  </button>
+  <button class="tab" data-tab="of" onclick="cambiarTab('of', this)">
+    <span class="tab-icon">🏭</span> OF / Salidas
+  </button>
+</nav>
+
+<!-- ═══════════ INPUT API OCULTO ═══════════ -->
+<!-- Mantenemos el input oculto para que el JS siga funcionando -->
+<input id="apiUrl" type="hidden">
+
+<div id="app" style="display:none">
+
+  <!-- ═══════════ ALMACÉN ═══════════ -->
+  <div id="tab-almacen" class="tab-content">
+
+    <div class="toolbar-filtros">
+      <select id="filtroFamilia" onchange="renderTodo()"></select>
+      <select id="filtroCriticidad" onchange="renderTodo()">
+        <option value="">Toda criticidad</option>
+        <option value="V">V — Vital</option>
+        <option value="E">E — Esencial</option>
+        <option value="D">D — Deseable</option>
+      </select>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="grid">
+      <div class="card"><h3>Stock por Familia</h3><canvas id="chFamilia"></canvas></div>
+      <div class="card"><h3>Estado de Stock</h3><canvas id="chEstados"></canvas></div>
+      <div class="card"><h3>Top 10 Capital Inmovilizado</h3><canvas id="chCapInmov"></canvas></div>
+      <div class="card"><h3>Stock por Criticidad</h3><canvas id="chCriticidad"></canvas></div>
+      <div class="card"><h3>Ranking ABC</h3><canvas id="chABC"></canvas></div>
+      <div class="card"><h3>Próximos Agotamientos (Top 10)</h3><canvas id="chAgotamiento"></canvas></div>
+    </div>
+
+    <!-- Reposición con cantidad sugerida -->
+    <div class="card" style="margin-bottom:16px">
+      <h3>🚚 Reposición Sugerida (con cantidad a pedir)</h3>
+      <div style="max-height:380px; overflow:auto">
+        <table id="tblReposicion">
+          <thead><tr>
+            <th>Código</th><th>Descripción</th><th>Crit.</th><th>ABC</th>
+            <th>Stock</th><th>Mínimo</th><th>Uso/mes</th>
+            <th>Cant. Reponer</th><th>Estado</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Proyección de agotamiento -->
+    <div class="card" style="margin-bottom:16px">
+      <h3>⏳ Proyección de Agotamiento</h3>
+      <div style="max-height:380px; overflow:auto">
+        <table id="tblAgotamiento">
+          <thead><tr>
+            <th>Código</th><th>Descripción</th><th>Crit.</th><th>ABC</th>
+            <th>Stock</th><th>Uso/mes</th><th>Días restantes</th>
+            <th>Fecha agotamiento</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sobre-Stock -->
+    <div class="card" style="margin-bottom:16px">
+      <h3>💸 Análisis de Sobre-Stock y Capital Inmovilizado</h3>
+      <div style="max-height:380px; overflow:auto">
+        <table id="tblSobreStock">
+          <thead><tr>
+            <th>Código</th><th>Descripción</th><th>Crit.</th>
+            <th>Stock</th><th>Uso/mes</th><th>Cobertura</th>
+            <th>Umbral</th><th>Capital Inmov.</th><th>Estado</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Ranking ABC -->
+    <div class="card" style="margin-bottom:16px">
+      <h3>🏆 Clasificación ABC (Pareto 80/15/5)</h3>
+      <div style="max-height:400px; overflow:auto">
+        <table id="tblABC">
+          <thead><tr>
+            <th>Código</th><th>Descripción</th><th>Familia</th>
+            <th>Valor S/</th><th>% del total</th><th>% acumulado</th><th>Clase</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Críticos -->
+    <div class="card">
+      <h3>🚨 Productos Críticos (Vitales sin stock)</h3>
+      <div style="max-height:340px; overflow:auto">
+        <table id="tblCritico">
+          <thead><tr>
+            <th>Código</th><th>Descripción</th><th>Familia</th>
+            <th>Ubic.</th><th>Stock</th><th>Valor</th><th>Crit.</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════ OF / SALIDAS ═══════════ -->
+  <div id="tab-of" class="tab-content" style="display:none">
+
+    <div class="toolbar-filtros">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px">
+        <input type="checkbox" id="filtroSoloAtrasadas" onchange="renderTodo()">
+        Solo OFs atrasadas
+      </label>
+      <select id="filtroRangoMeses" onchange="renderTodo()">
+        <option value="3">Últimos 3 meses</option>
+        <option value="6" selected>Últimos 6 meses</option>
+        <option value="12">Últimos 12 meses</option>
+        <option value="999">Todo el histórico</option>
+      </select>
+    </div>
+
+    <div class="kpis" id="kpisOF"></div>
+
+    <div class="grid">
+      <div class="card"><h3>Consumo Mensual (S/ con IVA)</h3><canvas id="chConsumoMes"></canvas></div>
+      <div class="card"><h3>Top 10 Operaciones</h3><canvas id="chTopOps"></canvas></div>
+      <div class="card"><h3>Estado de Entregas</h3><canvas id="chEstadosOF"></canvas></div>
+      <div class="card"><h3>Top 10 Clientes por Valor</h3><canvas id="chTopClientes"></canvas></div>
+      <div class="card"><h3>Cantidad Física Despachada por Mes</h3><canvas id="chCantidadMes"></canvas></div>
+      <div class="card"><h3>Distribución por Rango de Valor</h3><canvas id="chRangoValor"></canvas></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3>🏭 Ranking de Operaciones (To)</h3>
+      <div style="max-height:400px; overflow:auto">
+        <table id="tblTopOps">
+          <thead><tr>
+            <th>#</th><th>Operación (To)</th><th>OFs</th>
+            <th>Cantidad Total</th><th>Valor S/ (con IVA)</th>
+            <th>Ticket promedio</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📋 Órdenes de Fabricación (últimas 100)</h3>
+      <div style="max-height:400px; overflow:auto">
+        <table id="tblOF">
+          <thead><tr>
+            <th>OF</th><th>To</th><th>Cliente</th><th>Entrega</th>
+            <th>Cant.</th><th>Sin IVA</th><th>Con IVA</th><th>Estado</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div id="estado" class="estado">Pega tu URL del Web App y haz clic en "Cargar"</div>
+
+<script>
+/*******************************************************
+ * ESTADO GLOBAL
+ *******************************************************/
+let DATA = { stock: [], of: [], storage: [] };
+const charts = {};
+
+/*******************************************************
+ * CAMBIO DE TABS
+ *******************************************************/
+function cambiarTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+
+  if (btn) btn.classList.add('active');
+  document.getElementById('tab-' + tab).style.display = 'block';
+
+  setTimeout(() => {
+    Object.values(charts).forEach(c => { if (c && c.resize) c.resize(); });
+  }, 50);
+}
+
+/*******************************************************
+ * FETCH API
+ *******************************************************/
+async function cargar() {
+  const url = document.getElementById('apiUrl').value.trim();
+  if (!url) return alert('Pega la URL del Web App');
+  localStorage.setItem('apiUrl', url);
+
+  // 🎬 Animación del botón
+  const btn = document.querySelector('.btn-refresh');
+  if (btn) btn.classList.add('loading');
+
+  document.getElementById('estado').innerHTML = '⏳ Cargando datos...';
+  document.getElementById('estado').style.display = 'block';
+  document.getElementById('app').style.display = 'none';
+
+  try {
+    const resp = await fetch(url + '?accion=todo');
+    const texto = await resp.text();
+
+    let json;
+    try {
+      json = JSON.parse(texto);
+    } catch (e) {
+      document.getElementById('estado').innerHTML =
+        `<div class="error">❌ El API no devolvió JSON válido.<br><br>
+         <pre style="text-align:left;background:#fff;padding:10px;border-radius:6px;overflow:auto;max-height:300px;font-size:11px">${texto.substring(0,800)}</pre></div>`;
+      return;
+    }
+
+    if (!json.ok) throw new Error(json.error);
+
+    DATA.stock   = json.data.stock   || [];
+    DATA.of      = json.data.of      || [];
+    DATA.storage = json.data.storage || [];
+
+    document.getElementById('subtitulo').textContent =
+      `Stock: ${DATA.stock.length} filas · Storage: ${DATA.storage.length} filas · OF: ${DATA.of.length} órdenes · Actualizado ${new Date().toLocaleString()}`;
+
+    poblarFiltros();
+    renderTodo();
+
+    document.getElementById('estado').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  } catch (err) {
+    document.getElementById('estado').innerHTML =
+      `<div class="error">❌ Error: ${err.message}</div>`;
+  } finally {
+    // 🎬 Quitar animación al terminar (éxito o error)
+    const btn = document.querySelector('.btn-refresh');
+    if (btn) btn.classList.remove('loading');
+  }
+}
+
+/*******************************************************
+ * FILTROS ALMACÉN
+ *******************************************************/
+function poblarFiltros() {
+  const familias = [...new Set(DATA.stock.map(s => s.familia))].sort();
+  const sel = document.getElementById('filtroFamilia');
+  sel.innerHTML = '<option value="">Todas las familias</option>' +
+    familias.map(f => `<option value="${f}">${f}</option>`).join('');
+}
+
+function getStockFiltrado() {
+  const f = document.getElementById('filtroFamilia').value;
+  const c = document.getElementById('filtroCriticidad').value;
+  return DATA.stock.filter(s =>
+    (!f || s.familia === f) &&
+    (!c || s.criticidad === c)
+  );
+}
+
+/*******************************************************
+ * STORAGE + CRUCE
+ *******************************************************/
+function getStorageMap() {
+  const map = {};
+  DATA.storage.forEach(s => {
+    map[String(s.codigo).trim()] = s;
+  });
+  return map;
+}
+
+function stockConStorage(stockBase) {
+  const base  = stockBase || DATA.stock;
+  const stMap = getStorageMap();
+
+  const UMBRALES = { 'V': 12, 'E': 6, 'D': 3 };
+  const UMBRAL_DEFAULT = 6;
+  const LEAD_TIME_MESES = 2;  // ⚙️ Ajustable
+
+  // ─── 1ra pasada ───
+  const enriched = base.map(s => {
+    const cod = String(s.codigo).trim();
+    const st  = stMap[cod] || {};
+
+    const stockMin = st.stockMinimo || 0;
+    const stockAct = s.stockActual || 0;
+    const rotProm  = st.rotacionPromedio || 0;
+    const usoProm  = st.promedioUso || 0;
+    const costoU   = stockAct > 0 ? (s.total / stockAct) : 0;
+
+    let coberturaMeses;
+    if (usoProm > 0)        coberturaMeses = stockAct / usoProm;
+    else if (stockAct > 0)  coberturaMeses = Infinity;
+    else                    coberturaMeses = 0;
+
+    const umbral = UMBRALES[s.criticidad] || UMBRAL_DEFAULT;
+
+    let estado = 'OK';
+    if (stockAct <= 0)                                     estado = 'SIN STOCK';
+    else if (stockAct < stockMin)                          estado = 'BAJO MÍNIMO';
+    else if (coberturaMeses === Infinity)                  estado = 'CAPITAL MUERTO';
+    else if (coberturaMeses > umbral)                      estado = 'SOBRE-STOCK';
+
+    let capitalInmovilizado = 0;
+    if (estado === 'SOBRE-STOCK' || estado === 'CAPITAL MUERTO') {
+      const coberturaObjetivo = estado === 'CAPITAL MUERTO' ? 0 : (umbral / 2);
+      const unidadesObjetivo  = usoProm * coberturaObjetivo;
+      const excesoUnidades    = Math.max(0, stockAct - unidadesObjetivo);
+      capitalInmovilizado     = excesoUnidades * costoU;
+    }
+
+    // 🆕 Cantidad a reponer
+    let cantidadReponer = 0;
+    if (estado === 'SIN STOCK' || estado === 'BAJO MÍNIMO') {
+      const objetivo = (usoProm * LEAD_TIME_MESES) + stockMin;
+      cantidadReponer = Math.max(0, Math.ceil(objetivo - stockAct));
+    }
+
+    // 🆕 Proyección de agotamiento
+    let fechaAgotamiento = null;
+    let diasParaAgotar   = null;
+    if (stockAct <= 0) {
+      diasParaAgotar = 0;
+      fechaAgotamiento = new Date();
+    } else if (usoProm > 0) {
+      const consumoDiario = usoProm / 30;
+      diasParaAgotar = Math.round(stockAct / consumoDiario);
+      fechaAgotamiento = new Date(Date.now() + diasParaAgotar * 86400000);
+    }
+
+    return {
+      ...s,
+      stockMinimo: stockMin,
+      rotacionPromedio: rotProm,
+      promedioUso: usoProm,
+      coberturaMeses,
+      umbral,
+      estado,
+      capitalInmovilizado,
+      cantidadReponer,
+      fechaAgotamiento,
+      diasParaAgotar
+    };
+  });
+
+  // ─── 2da pasada: ABC ───
+  const ordenados = [...enriched].sort((a,b) => (b.total || 0) - (a.total || 0));
+  const valorTotalGlobal = ordenados.reduce((a,s) => a + (s.total || 0), 0);
+
+  let acumulado = 0;
+  const clasesABC = {};
+  ordenados.forEach(s => {
+    const valor = s.total || 0;
+    acumulado += valor;
+    const pctAcum = valorTotalGlobal > 0 ? (acumulado / valorTotalGlobal) * 100 : 0;
+    let clase = 'C';
+    if (pctAcum <= 80) clase = 'A';
+    else if (pctAcum <= 95) clase = 'B';
+    clasesABC[String(s.codigo).trim()] = clase;
+  });
+
+  enriched.forEach(s => {
+    s.claseABC = clasesABC[String(s.codigo).trim()] || 'C';
+  });
+
+  return enriched;
+}
+
+/*******************************************************
+ * RENDER PRINCIPAL
+ *******************************************************/
+function renderTodo() {
+  const stock = getStockFiltrado();
+  renderKPIsAlmacen(stock);
+  renderChartsAlmacen(stock);
+  renderTablaReposicion(stock);
+  renderTablaAgotamiento(stock);
+  renderTablaABC(stock);
+  renderTablaSobreStock(stock);
+  renderTablaCritico(stock);
+
+  renderKPIsOF();
+  renderChartsOF();
+  renderTablaTopOps();
+  renderTablaOF();
+}
+
+/*******************************************************
+ * KPIs ALMACÉN
+ *******************************************************/
+function renderKPIsAlmacen(stock) {
+  const stockFull = stockConStorage(stock);
+
+  const codigosUnicos = new Set(stockFull.map(s => String(s.codigo).trim())).size;
+  const valorTotal    = stockFull.reduce((a,s) => a + s.total, 0);
+
+  const criticos      = stockFull.filter(s => s.criticidad === 'V' && s.stockActual <= 0).length;
+  const sinStock      = stockFull.filter(s => s.stockActual <= 0).length;
+  const bajoMinimo    = stockFull.filter(s => s.estado === 'BAJO MÍNIMO').length;
+  const sobreStock    = stockFull.filter(s => s.estado === 'SOBRE-STOCK').length;
+  const capitalMuerto = stockFull.filter(s => s.estado === 'CAPITAL MUERTO').length;
+  const capInmovilizado = stockFull.reduce((a,s) => a + (s.capitalInmovilizado || 0), 0);
+
+  const totalReponer    = stockFull.reduce((a,s) => a + (s.cantidadReponer || 0), 0);
+  const skusConReponer  = stockFull.filter(s => s.cantidadReponer > 0).length;
+  const skusClaseA      = stockFull.filter(s => s.claseABC === 'A').length;
+  const skusClaseB      = stockFull.filter(s => s.claseABC === 'B').length;
+  const skusClaseC      = stockFull.filter(s => s.claseABC === 'C').length;
+
+  const agotan30d = stockFull.filter(s =>
+    s.diasParaAgotar !== null && s.diasParaAgotar > 0 && s.diasParaAgotar <= 30
+  ).length;
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="label">💰 Capital en Almacén</div><div class="valor">S/ ${fmt(valorTotal)}</div></div>
+    <div class="kpi"><div class="label">📦 Códigos Activos</div><div class="valor">${codigosUnicos}</div></div>
+    <div class="kpi ${criticos ? 'alerta':'ok'}"><div class="label">🚨 Productos Críticos</div><div class="valor">${criticos}</div></div>
+    <div class="kpi ${sinStock ? 'alerta':'ok'}"><div class="label">⚠️ Quiebres de Stock</div><div class="valor">${sinStock}</div></div>
+    <div class="kpi ${bajoMinimo ? 'warn':'ok'}"><div class="label">📉 Bajo Stock Mínimo</div><div class="valor">${bajoMinimo}</div></div>
+    <div class="kpi ${sobreStock ? 'warn':'ok'}"><div class="label">📈 Sobre-Stock</div><div class="valor">${sobreStock}</div></div>
+    <div class="kpi ${capitalMuerto ? 'alerta':'ok'}"><div class="label">🧊 Capital Muerto</div><div class="valor">${capitalMuerto}</div></div>
+    <div class="kpi ${capInmovilizado > 0 ? 'warn':'ok'}"><div class="label">💸 Capital Inmovilizado</div><div class="valor">S/ ${fmt(capInmovilizado)}</div></div>
+    <div class="kpi ${skusConReponer ? 'warn':'ok'}"><div class="label">🛒 SKUs a Reponer</div><div class="valor">${skusConReponer}</div></div>
+    <div class="kpi ${totalReponer ? 'warn':'ok'}"><div class="label">📦 Total Unidades a Reponer</div><div class="valor">${fmt(totalReponer)}</div></div>
+    <div class="kpi ${agotan30d ? 'alerta':'ok'}"><div class="label">⏳ Se Agotan ≤30 días</div><div class="valor">${agotan30d}</div></div>
+    <div class="kpi ok" title="A: ${skusClaseA} · B: ${skusClaseB} · C: ${skusClaseC}">
+      <div class="label">🏆 ABC (A/B/C)</div>
+      <div class="valor" style="font-size:16px">${skusClaseA}/${skusClaseB}/${skusClaseC}</div>
+    </div>
+  `;
+}
+
+/*******************************************************
+ * GRÁFICOS ALMACÉN
+ *******************************************************/
+function renderChartsAlmacen(stock) {
+  const stockFull = stockConStorage(stock);
+
+  // 1. Stock por Familia
+  const porFam = agrupar(stockFull, 'familia', 'total');
+  const famTop = Object.entries(porFam).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  dibujar('chFamilia', 'bar', {
+    labels: famTop.map(x => x[0]),
+    datasets: [{ label: 'Valor S/', data: famTop.map(x=>x[1]), backgroundColor: '#1a73e8' }]
+  }, { indexAxis: 'y' });
+
+  // 2. Estado de Stock
+  const estados = { 'OK':0, 'BAJO MÍNIMO':0, 'SIN STOCK':0, 'SOBRE-STOCK':0, 'CAPITAL MUERTO':0 };
+  stockFull.forEach(s => estados[s.estado] = (estados[s.estado] || 0) + 1);
+  dibujar('chEstados', 'doughnut', {
+    labels: Object.keys(estados),
+    datasets: [{
+      data: Object.values(estados),
+      backgroundColor: ['#34a853', '#fbbc04', '#ea4335', '#1a73e8', '#9c27b0']
+    }]
+  });
+
+  // 3. Top 10 Capital Inmovilizado
+  const topCap = [...stockFull]
+    .filter(s => s.capitalInmovilizado > 0)
+    .sort((a,b) => b.capitalInmovilizado - a.capitalInmovilizado)
+    .slice(0, 10);
+  dibujar('chCapInmov', 'bar', {
+    labels: topCap.map(x => x.codigo),
+    datasets: [{
+      label: 'S/ inmovilizado',
+      data: topCap.map(x => x.capitalInmovilizado),
+      backgroundColor: '#9c27b0'
+    }]
+  }, { indexAxis: 'y' });
+
+  // 4. Stock por Criticidad
+  const porCrit = { 'V':0, 'E':0, 'D':0 };
+  stockFull.forEach(s => {
+    const c = s.criticidad || 'D';
+    porCrit[c] = (porCrit[c] || 0) + s.total;
+  });
+  dibujar('chCriticidad', 'doughnut', {
+    labels: ['V — Vital', 'E — Esencial', 'D — Deseable'],
+    datasets: [{
+      data: [porCrit.V, porCrit.E, porCrit.D],
+      backgroundColor: ['#ea4335', '#fbbc04', '#34a853']
+    }]
+  });
+
+  // 5. Ranking ABC
+  const abc = { 'A':0, 'B':0, 'C':0 };
+  stockFull.forEach(s => abc[s.claseABC] = (abc[s.claseABC] || 0) + 1);
+  dibujar('chABC', 'doughnut', {
+    labels: ['A — Alto valor', 'B — Medio', 'C — Bajo'],
+    datasets: [{
+      data: [abc.A, abc.B, abc.C],
+      backgroundColor: ['#ea4335', '#fbbc04', '#34a853']
+    }]
+  });
+
+  // 6. Próximos agotamientos
+  const agotando = [...stockFull]
+    .filter(s => s.diasParaAgotar !== null && s.diasParaAgotar > 0)
+    .sort((a,b) => a.diasParaAgotar - b.diasParaAgotar)
+    .slice(0, 10);
+  dibujar('chAgotamiento', 'bar', {
+    labels: agotando.map(x => x.codigo),
+    datasets: [{
+      label: 'Días para agotarse',
+      data: agotando.map(x => x.diasParaAgotar),
+      backgroundColor: agotando.map(x =>
+        x.diasParaAgotar <= 15 ? '#ea4335' :
+        x.diasParaAgotar <= 30 ? '#fbbc04' : '#34a853'
+      )
+    }]
+  }, { indexAxis: 'y' });
+}
+
+/*******************************************************
+ * FILTRO DE OFs
+ *******************************************************/
+function getOFFiltradas() {
+  const soloAtrasadas = document.getElementById('filtroSoloAtrasadas').checked;
+  const meses = parseInt(document.getElementById('filtroRangoMeses').value) || 999;
+
+  const hoy = new Date();
+  const limite = meses >= 999
+    ? new Date(1900, 0, 1)
+    : new Date(hoy.getFullYear(), hoy.getMonth() - meses, hoy.getDate());
+
+  return DATA.of.filter(o => {
+    if (!o.deliveryDate) return false;
+    const f = new Date(o.deliveryDate);
+    if (f < limite) return false;
+    if (soloAtrasadas && f >= hoy) return false;
+    return true;
+  });
+}
+
+/*******************************************************
+ * KPIs OF
+ *******************************************************/
+function renderKPIsOF() {
+  const ofs = getOFFiltradas();
+
+  if (!ofs.length) {
+    document.getElementById('kpisOF').innerHTML =
+      '<div class="kpi"><div class="label">Sin datos</div><div class="valor">—</div></div>';
+    return;
+  }
+
+  const total       = ofs.length;
+  const valorTotal  = ofs.reduce((a,o) => a + o.totalWithVAT, 0);
+  const valorSinIVA = ofs.reduce((a,o) => a + o.totalNoVAT, 0);
+  const cantidadTot = ofs.reduce((a,o) => a + o.totalPhysicalQty, 0);
+  const ticketProm  = total ? valorTotal / total : 0;
+
+  const hoy = new Date();
+  const atrasadas = ofs.filter(o => {
+    if (!o.deliveryDate) return false;
+    return (new Date(o.deliveryDate) - hoy) < 0;
+  }).length;
+
+  const proximas7 = ofs.filter(o => {
+    if (!o.deliveryDate) return false;
+    const d = (new Date(o.deliveryDate) - hoy) / 86400000;
+    return d >= 0 && d <= 7;
+  }).length;
+
+  const porTo = {};
+  ofs.forEach(o => {
+    const k = o.to || 'Sin To';
+    if (!porTo[k]) porTo[k] = { ofs: 0, valor: 0 };
+    porTo[k].ofs++;
+    porTo[k].valor += o.totalWithVAT;
+  });
+  const topOp = Object.entries(porTo).sort((a,b) => b[1].valor - a[1].valor)[0];
+
+  document.getElementById('kpisOF').innerHTML = `
+    <div class="kpi"><div class="label">🏭 Total OFs</div><div class="valor">${total}</div></div>
+    <div class="kpi"><div class="label">💵 Valor Total (con IVA)</div><div class="valor">S/ ${fmt(valorTotal)}</div></div>
+    <div class="kpi"><div class="label">💵 Valor Total (sin IVA)</div><div class="valor">S/ ${fmt(valorSinIVA)}</div></div>
+    <div class="kpi"><div class="label">📦 Cantidad Despachada</div><div class="valor">${fmt(cantidadTot)}</div></div>
+    <div class="kpi"><div class="label">🎫 Ticket Promedio</div><div class="valor">S/ ${fmt(ticketProm)}</div></div>
+    <div class="kpi ${atrasadas ? 'alerta':'ok'}"><div class="label">⏰ Atrasadas</div><div class="valor">${atrasadas}</div></div>
+    <div class="kpi ${proximas7 ? 'warn':'ok'}"><div class="label">📅 Entregan ≤7 días</div><div class="valor">${proximas7}</div></div>
+    <div class="kpi ok">
+      <div class="label">🥇 Operación Top</div>
+      <div class="valor" style="font-size:16px">${topOp ? topOp[0] : '—'}</div>
+      <div style="font-size:11px;color:#5f6368;margin-top:4px">S/ ${topOp ? fmt(topOp[1].valor) : '0'}</div>
+    </div>
+  `;
+}
+
+/*******************************************************
+ * GRÁFICOS OF
+ *******************************************************/
+function renderChartsOF() {
+  const ofs = getOFFiltradas();
+
+  const porMes = {};
+  ofs.forEach(o => {
+    if (!o.deliveryDate) return;
+    const m = o.deliveryDate.slice(0,7);
+    porMes[m] = (porMes[m] || 0) + o.totalWithVAT;
+  });
+  const meses = Object.keys(porMes).sort();
+  dibujar('chConsumoMes', 'line', {
+    labels: meses,
+    datasets: [{
+      label: 'S/ con IVA',
+      data: meses.map(m => porMes[m]),
+      borderColor: '#1a73e8',
+      backgroundColor: 'rgba(26,115,232,0.15)',
+      fill: true, tension: 0.3
+    }]
+  });
+
+  const porTo = {};
+  ofs.forEach(o => {
+    const k = o.to || 'Sin To';
+    porTo[k] = (porTo[k] || 0) + o.totalWithVAT;
+  });
+  const topOps = Object.entries(porTo).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  dibujar('chTopOps', 'bar', {
+    labels: topOps.map(x => x[0]),
+    datasets: [{ label: 'S/ con IVA', data: topOps.map(x => x[1]), backgroundColor: '#1a73e8' }]
+  }, { indexAxis: 'y' });
+
+  const hoy = new Date();
+  let atrasadas = 0, semana = 0, mes = 0, futuro = 0;
+  ofs.forEach(o => {
+    if (!o.deliveryDate) return;
+    const d = (new Date(o.deliveryDate) - hoy) / 86400000;
+    if (d < 0) atrasadas++;
+    else if (d <= 7) semana++;
+    else if (d <= 30) mes++;
+    else futuro++;
+  });
+  dibujar('chEstadosOF', 'doughnut', {
+    labels: ['Atrasadas', '≤7 días', '≤30 días', 'Futuro'],
+    datasets: [{
+      data: [atrasadas, semana, mes, futuro],
+      backgroundColor: ['#ea4335', '#fbbc04', '#1a73e8', '#34a853']
+    }]
+  });
+
+  const porCli = {};
+  ofs.forEach(o => {
+    const k = o.name || 'Sin nombre';
+    porCli[k] = (porCli[k] || 0) + o.totalWithVAT;
+  });
+  const topCli = Object.entries(porCli).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  dibujar('chTopClientes', 'bar', {
+    labels: topCli.map(x => x[0].substring(0,25)),
+    datasets: [{ label: 'S/ con IVA', data: topCli.map(x => x[1]), backgroundColor: '#34a853' }]
+  }, { indexAxis: 'y' });
+
+  const cantMes = {};
+  ofs.forEach(o => {
+    if (!o.deliveryDate) return;
+    const m = o.deliveryDate.slice(0,7);
+    cantMes[m] = (cantMes[m] || 0) + o.totalPhysicalQty;
+  });
+  const mesesC = Object.keys(cantMes).sort();
+  dibujar('chCantidadMes', 'bar', {
+    labels: mesesC,
+    datasets: [{
+      label: 'Unidades',
+      data: mesesC.map(m => cantMes[m]),
+      backgroundColor: '#34a853'
+    }]
+  });
+
+  const rangos = { '<1k':0, '1k-5k':0, '5k-10k':0, '10k-50k':0, '>50k':0 };
+  ofs.forEach(o => {
+    const v = o.totalWithVAT;
+    if (v < 1000) rangos['<1k']++;
+    else if (v < 5000) rangos['1k-5k']++;
+    else if (v < 10000) rangos['5k-10k']++;
+    else if (v < 50000) rangos['10k-50k']++;
+    else rangos['>50k']++;
+  });
+  dibujar('chRangoValor', 'bar', {
+    labels: Object.keys(rangos),
+    datasets: [{
+      label: 'Cantidad de OFs',
+      data: Object.values(rangos),
+      backgroundColor: '#fbbc04'
+    }]
+  });
+}
+
+/*******************************************************
+ * HELPER GRÁFICO
+ *******************************************************/
+function dibujar(id, tipo, data, extra={}) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type: tipo,
+    data,
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: tipo !== 'bar' } },
+      ...extra
+    }
+  });
+}
+
+/*******************************************************
+ * TABLA: Reposición con cantidad
+ *******************************************************/
+function renderTablaReposicion(stock) {
+  const tbody = document.querySelector('#tblReposicion tbody');
+  const data  = stockConStorage(stock)
+    .filter(s => s.cantidadReponer > 0)
+    .sort((a,b) => b.cantidadReponer - a.cantidadReponer);
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="9">Sin reposiciones pendientes 🎉</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.map(s => {
+    const badgeClass = s.estado === 'SIN STOCK' ? 'SIN-STOCK' : 'BAJO-MÍNIMO';
+    return `
+      <tr>
+        <td>${s.codigo}</td>
+        <td>${s.descripcion.substring(0,40)}</td>
+        <td><span class="badge ${s.criticidad}">${s.criticidad}</span></td>
+        <td><span class="badge ${s.claseABC}">${s.claseABC}</span></td>
+        <td>${s.stockActual} ${s.unidad}</td>
+        <td>${s.stockMinimo}</td>
+        <td>${s.promedioUso.toFixed(2)}</td>
+        <td><strong>${s.cantidadReponer}</strong></td>
+        <td><span class="badge ${badgeClass}">${s.estado}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/*******************************************************
+ * TABLA: Agotamiento
+ *******************************************************/
+function renderTablaAgotamiento(stock) {
+  const tbody = document.querySelector('#tblAgotamiento tbody');
+  const data  = stockConStorage(stock)
+    .filter(s => s.diasParaAgotar !== null && s.diasParaAgotar > 0)
+    .sort((a,b) => a.diasParaAgotar - b.diasParaAgotar)
+    .slice(0, 100);
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="8">Sin agotamientos proyectados 🎉</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.map(s => {
+    const fecha = s.fechaAgotamiento
+      ? s.fechaAgotamiento.toISOString().slice(0,10)
+      : '—';
+    const color = s.diasParaAgotar <= 15 ? 'SIN-STOCK'
+                : s.diasParaAgotar <= 30 ? 'BAJO-MÍNIMO'
+                : 'OK';
+    return `
+      <tr>
+        <td>${s.codigo}</td>
+        <td>${s.descripcion.substring(0,40)}</td>
+        <td><span class="badge ${s.criticidad}">${s.criticidad}</span></td>
+        <td><span class="badge ${s.claseABC}">${s.claseABC}</span></td>
+        <td>${s.stockActual} ${s.unidad}</td>
+        <td>${s.promedioUso.toFixed(2)}</td>
+        <td><span class="badge ${color}">${s.diasParaAgotar} días</span></td>
+        <td>${fecha}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/*******************************************************
+ * TABLA: ABC
+ *******************************************************/
+function renderTablaABC(stock) {
+  const tbody = document.querySelector('#tblABC tbody');
+  const data  = stockConStorage(stock)
+    .sort((a,b) => (b.total || 0) - (a.total || 0));
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="7">Sin datos</td></tr>';
+    return;
+  }
+
+  const valorTotal = data.reduce((a,s) => a + (s.total || 0), 0);
+  let acumulado = 0;
+
+  tbody.innerHTML = data.map(s => {
+    const valor = s.total || 0;
+    const pct   = valorTotal > 0 ? (valor / valorTotal) * 100 : 0;
+    acumulado += valor;
+    const pctAcum = valorTotal > 0 ? (acumulado / valorTotal) * 100 : 0;
+
+    return `
+      <tr>
+        <td>${s.codigo}</td>
+        <td>${s.descripcion.substring(0,40)}</td>
+        <td>${s.familia}</td>
+        <td>S/ ${fmt(valor)}</td>
+        <td>${pct.toFixed(2)}%</td>
+        <td>${pctAcum.toFixed(2)}%</td>
+        <td><span class="badge ${s.claseABC}">${s.claseABC}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/*******************************************************
+ * TABLA: Críticos
+ *******************************************************/
+function renderTablaCritico(stock) {
+  const tbody = document.querySelector('#tblCritico tbody');
+  const criticos = stock
+    .filter(s => s.criticidad === 'V' && s.stockActual <= 0)
+    .sort((a,b) => b.total - a.total)
+    .slice(0, 100);
+
+  tbody.innerHTML = criticos.length ? criticos.map(s => `
+    <tr>
+      <td>${s.codigo}</td>
+      <td>${s.descripcion.substring(0,50)}</td>
+      <td>${s.familia}</td>
+      <td>${s.ubicacion}</td>
+      <td>${s.stockActual} ${s.unidad}</td>
+      <td>S/ ${fmt(s.total)}</td>
+      <td><span class="badge ${s.criticidad}">${s.criticidad}</span></td>
+    </tr>
+  `).join('') : '<tr><td colspan="7">Sin SKUs críticos 🎉</td></tr>';
+}
+
+/*******************************************************
+ * TABLA: Sobre-Stock
+ *******************************************************/
+function renderTablaSobreStock(stock) {
+  const tbody = document.querySelector('#tblSobreStock tbody');
+  const data  = stockConStorage(stock)
+    .filter(s => s.estado === 'SOBRE-STOCK' || s.estado === 'CAPITAL MUERTO')
+    .sort((a,b) => (b.capitalInmovilizado || 0) - (a.capitalInmovilizado || 0));
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="9">Sin sobre-stock detectado 🎉</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.map(s => {
+    const cobertura = s.coberturaMeses === Infinity
+      ? '∞'
+      : s.coberturaMeses.toFixed(1) + ' m';
+    const badgeClass = s.estado === 'CAPITAL MUERTO' ? 'CAPITAL-MUERTO' : 'SOBRE-STOCK';
+    return `
+      <tr>
+        <td>${s.codigo}</td>
+        <td>${s.descripcion.substring(0,40)}</td>
+        <td><span class="badge ${s.criticidad}">${s.criticidad}</span></td>
+        <td>${s.stockActual} ${s.unidad}</td>
+        <td>${s.promedioUso.toFixed(2)}</td>
+        <td>${cobertura}</td>
+        <td>${s.umbral} m</td>
+        <td>S/ ${fmt(s.capitalInmovilizado)}</td>
+        <td><span class="badge ${badgeClass}">${s.estado}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/*******************************************************
+ * TABLA: Top Ops
+ *******************************************************/
+function renderTablaTopOps() {
+  const tbody = document.querySelector('#tblTopOps tbody');
+  const ofs = getOFFiltradas();
+
+  const porTo = {};
+  ofs.forEach(o => {
+    const k = o.to || 'Sin To';
+    if (!porTo[k]) porTo[k] = { ofs: 0, cantidad: 0, valor: 0 };
+    porTo[k].ofs++;
+    porTo[k].cantidad += o.totalPhysicalQty;
+    porTo[k].valor += o.totalWithVAT;
+  });
+
+  const ranking = Object.entries(porTo)
+    .map(([to, d]) => ({ to, ...d, ticket: d.ofs ? d.valor / d.ofs : 0 }))
+    .sort((a,b) => b.valor - a.valor);
+
+  if (!ranking.length) {
+    tbody.innerHTML = '<tr><td colspan="6">Sin datos en el rango seleccionado</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = ranking.map((r, i) => `
+    <tr>
+      <td><strong>${i+1}</strong></td>
+      <td>${r.to}</td>
+      <td>${r.ofs}</td>
+      <td>${fmt(r.cantidad)}</td>
+      <td>S/ ${fmt(r.valor)}</td>
+      <td>S/ ${fmt(r.ticket)}</td>
+    </tr>
+  `).join('');
+}
+
+/*******************************************************
+ * TABLA: OF
+ *******************************************************/
+function renderTablaOF() {
+  const tbody = document.querySelector('#tblOF tbody');
+  const hoy = new Date();
+  const ofs = [...getOFFiltradas()]
+    .sort((a,b) => (b.deliveryDate || '').localeCompare(a.deliveryDate || ''))
+    .slice(0, 100);
+
+  if (!ofs.length) {
+    tbody.innerHTML = '<tr><td colspan="8">Sin OFs en el rango seleccionado</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = ofs.map(o => {
+    let estado = 'Futuro', badge = 'OK';
+    if (o.deliveryDate) {
+      const d = (new Date(o.deliveryDate) - hoy) / 86400000;
+      if (d < 0) { estado = 'Atrasada'; badge = 'SIN-STOCK'; }
+      else if (d <= 7) { estado = 'Esta semana'; badge = 'BAJO-MÍNIMO'; }
+      else if (d <= 30) { estado = 'Este mes'; badge = 'SOBRE-STOCK'; }
+    }
+    return `
+      <tr>
+        <td><strong>${o.number}</strong></td>
+        <td>${o.to}</td>
+        <td>${(o.name || '').substring(0,30)}</td>
+        <td>${o.deliveryDate || '—'}</td>
+        <td>${o.totalPhysicalQty}</td>
+        <td>S/ ${fmt(o.totalNoVAT)}</td>
+        <td>S/ ${fmt(o.totalWithVAT)}</td>
+        <td><span class="badge ${badge}">${estado}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/*******************************************************
+ * UTILIDADES
+ *******************************************************/
+function agrupar(arr, key, valKey) {
+  return arr.reduce((acc, x) => {
+    acc[x[key]] = (acc[x[key]] || 0) + x[valKey];
+    return acc;
+  }, {});
+}
+
+function fmt(n) {
+  return Number(n || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/*******************************************************
+ * AUTO-CARGA
+ *******************************************************/
+window.addEventListener('DOMContentLoaded', () => {
+  const API_URL = 'https://script.google.com/macros/s/AKfycbz4MvPocOIOe7uQd6hY6UXijGi6EduL8zqbWsfjF5yQmBVxyr8EZyKHX41SSFjs2gYf/exec';
+  localStorage.removeItem('apiUrl');
+  document.getElementById('apiUrl').value = API_URL;
+  cargar();
+});
+</script>
+</body>
+</html>

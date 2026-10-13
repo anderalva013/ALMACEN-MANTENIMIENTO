@@ -515,10 +515,14 @@ function stockConStorage(stockBase) {
 
     let cantidadReponer = 0;
     if (estado === 'SIN STOCK' || estado === 'BAJO MÍNIMO') {
-      const objetivo = (usoProm * leadTime) + stockMin;
-      let calc = Math.ceil(objetivo - stockAct);
-      if (calc <= 0) calc = Math.max(1, stockMin - stockAct);
-      cantidadReponer = Math.max(1, calc);
+      // 📅 Periodo según criticidad
+      const PERIODOS = { 'V': 0, 'E': 2, 'D': 3 };
+      const periodo = PERIODOS[s.criticidad] || 3;
+  
+    const objetivo = (usoProm * (leadTime + periodo)) + stockMin;
+    let calc = Math.ceil(objetivo - stockAct);
+    if (calc <= 0) calc = Math.max(1, stockMin - stockAct);
+    cantidadReponer = Math.max(1, calc);
     }
 
     let fechaAgotamiento = null;

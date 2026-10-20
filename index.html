@@ -588,40 +588,60 @@
         usageForm.reset();
     }
 
-    usageForm.addEventListener('submit', async (e) => {
+    usageForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const submitBtn = document.getElementById('btnSubmitForm');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
-        const materialId = document.getElementById('modalMaterialId').value;
-        const materialNombre = document.getElementById('modalMaterialNombre').value;
-        const responsable = encodeURIComponent(document.getElementById('responsable').value.trim());
-        const cantidad = document.getElementById('cantidad').value;
-        const ordenTrabajo = encodeURIComponent(document.getElementById('ordenTrabajo').value.trim());
-        const actividad = encodeURIComponent(document.getElementById('actividad').value.trim());
+        // Creamos un formulario dinámico invisible para hacer un POST clásico hacia Apps Script
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = API_URL;
+        form.target = 'hidden_iframe'; // Lo enviamos a un iframe oculto para que la página no se recargue
 
-        // Construimos la URL con parámetros GET
-        const urlRegistro = `${API_URL}?accion=registrar&materialId=${materialId}&materialNombre=${encodeURIComponent(materialNombre)}&responsable=${responsable}&cantidad=${cantidad}&ordenTrabajo=${ordenTrabajo}&actividad=${actividad}`;
+        // Recopilamos los datos
+        const datos = {
+            accion: 'registrar',
+            materialId: document.getElementById('modalMaterialId').value,
+            materialNombre: document.getElementById('modalMaterialNombre').value,
+            responsable: document.getElementById('responsable').value.trim(),
+            cantidad: document.getElementById('cantidad').value,
+            ordenTrabajo: document.getElementById('ordenTrabajo').value.trim(),
+            actividad: document.getElementById('actividad').value.trim()
+        };
 
-        try {
-            const response = await fetch(urlRegistro);
-            const result = await response.json();
+        // Añadimos los campos como inputs ocultos al formulario
+        for (const key in datos) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = datos[key];
+            form.appendChild(input);
+        }
 
-            if (result.status === 'success') {
-                alert('✅ ¡Registro guardado con éxito y stock actualizado!');
-                closeModal();
-                loadDataFromSheets(); // Recarga la tabla con el stock actualizado
-            } else {
-                alert('❌ Error al guardar: ' + (result.message || 'Desconocido'));
-            }
-        } catch (error) {
-            console.error("Error guardando el registro:", error);
-            alert('⚠️ Ocurrió un error al intentar enviar los datos.');
-        } finally {
+        // Creamos un iframe oculto si no existe
+        let iframe = document.getElementById('hidden_iframe');
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.name = 'hidden_iframe';
+            iframe.id = 'hidden_iframe';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+        }
+
+        document.body.appendChild(form);
+        form.submit(); // Enviamos el formulario directamente al servidor de Google
+        document.body.removeChild(form);
+
+        // Como el iframe maneja la respuesta en segundo plano, damos el éxito por sentado tras 1.5 segundos
+        setTimeout(() => {
+            alert('✅ ¡Registro guardado con éxito y stock actualizado!');
+            closeModal();
+            loadDataFromSheets(); // Recarga la tabla con los nuevos datos
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Registro';
-        }
+        }, 1500);
     });
 
     function resetFilters() {

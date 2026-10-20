@@ -137,26 +137,25 @@
             box-shadow: 0 14px 30px rgba(0,0,0,0.12);
         }
 
-        /* CONTENEDOR DE IMAGEN CORREGIDO CON OVERFLOW HIDDEN */
         .card-img {
              width: 100%;
-             height: 180px;            /* Altura fija para todas las tarjetas */
-             background: #ffffff;      /* Fondo blanco para que combine con fotos con fondo blanco */
+             height: 180px;
+             background: #ffffff;
              display: flex;
-             align-items: center;      /* Centra la foto verticalmente */
-             justify-content: center;  /* Centra la foto horizontalmente */
+             align-items: center;
+             justify-content: center;
              overflow: hidden;
-             padding: 10px;            /* Espacio interno para que no pegue a los bordes */
+             padding: 10px;
         }
 
         .card-img img {
-            max-width: 90%;          /* Deja un margen suave a los lados */
-   	    max-height: 90%;         /* Asegura que no se salga a lo alto */
-   	    width: auto;             /* Mantiene la proporción real de la foto */
-            height: auto;            /* Mantiene la proporción real de la foto */
-  	    object-fit: contain;     /* HACE QUE SE VEA COMPLETA SIN RECORTAR */
-    	    display: block;
-	}
+            max-width: 90%;
+            max-height: 90%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
 
         .card-body {
             padding: 18px 20px 20px;
@@ -209,6 +208,7 @@
             border-top: 1px solid #eee;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-size: 0.85rem;
             color: #555;
         }
@@ -218,6 +218,107 @@
             padding: 3px 10px;
             border-radius: 20px;
             font-weight: 600;
+        }
+
+        /* BOTÓN DE SELECCIÓN EN TARJETA */
+        .btn-select {
+            background: #1c5a7a;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+        .btn-select:hover {
+            background: #0a2f44;
+        }
+
+        /* MODAL EMERGENTE DE REGISTRO */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .modal-content h2 {
+            font-size: 1.4rem;
+            color: #0a2f44;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: #1c5a7a;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            background: #888;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-submit:hover {
+            background: #219150;
         }
 
         /* LOADER Y MENSAJES */
@@ -275,6 +376,47 @@
 
 </div>
 
+<!-- MODAL EMERGENTE PARA REGISTRAR SALIDA -->
+<div class="modal-overlay" id="usageModal">
+    <div class="modal-content">
+        <h2><i class="fas fa-clipboard-list"></i> Registrar Salida de Material</h2>
+        <form id="usageForm">
+            <input type="hidden" id="modalMaterialId">
+            <input type="hidden" id="modalMaterialNombre">
+
+            <div class="form-group">
+                <label>Material Seleccionado:</label>
+                <input type="text" id="modalMaterialLabel" readonly style="background-color: #eef2f7; font-weight: bold;">
+            </div>
+
+            <div class="form-group">
+                <label for="responsable">Responsable <span style="color:red;">*</span></label>
+                <input type="text" id="responsable" placeholder="Nombre de quien retira" required>
+            </div>
+
+            <div class="form-group">
+                <label for="cantidad">Cantidad Usada <span style="color:red;">*</span></label>
+                <input type="number" id="cantidad" min="1" placeholder="Ej: 2" required>
+            </div>
+
+            <div class="form-group">
+                <label for="ordenTrabajo">Orden de Trabajo (OT) <span style="color:red;">*</span></label>
+                <input type="text" id="ordenTrabajo" placeholder="Ej: OT-2026-045" required>
+            </div>
+
+            <div class="form-group">
+                <label for="actividad">Actividad / Observación</label>
+                <textarea id="actividad" rows="3" placeholder="Descripción breve del trabajo realizado..."></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn-submit" id="btnSubmitForm"><i class="fas fa-save"></i> Guardar Registro</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     // --------------------------------------------------------------
     //  URL DE TU API DE GOOGLE APPS SCRIPT
@@ -291,9 +433,10 @@
     const totalItemsSpan = document.getElementById('totalItems');
     const bajoStockSpan = document.getElementById('bajoStock');
 
-    // Mapeo e inserción de íconos o imágenes blindadas con onerror
+    const usageModal = document.getElementById('usageModal');
+    const usageForm = document.getElementById('usageForm');
+
     function resolveIcon(item) {
-        // Si el ítem trae una URL directa de imagen web o Drive convertida
         if (item.imagen && (item.imagen.startsWith('http://') || item.imagen.startsWith('https://'))) {
             let backupIcon = getCategoryIconClass(item);
             return `<img src="${item.imagen}" alt="${item.nombre}" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\\'fas ${backupIcon}\\'></i>';">`;
@@ -325,7 +468,6 @@
     function cleanUnit(unitStr) {
         if (!unitStr) return 'UND';
         let str = String(unitStr).trim();
-        // Corrige duplicaciones como "UND 1 UND"
         if (str.toUpperCase().includes('UND')) return 'UND';
         return str;
     }
@@ -355,6 +497,9 @@
                         </div>
                         <div class="card-footer">
                             <span><i class="fas fa-map-pin"></i> <span class="ubicacion">${item.ubicacion}</span></span>
+                            <button class="btn-select" onclick="openModal('${item.id}', '${item.nombre.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-hand-pointer"></i> Usar
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -429,6 +574,58 @@
                 </div>`;
         }
     }
+
+    /* LÓGICA DE MODAL Y REGISTRO */
+    function openModal(id, nombre) {
+        document.getElementById('modalMaterialId').value = id;
+        document.getElementById('modalMaterialNombre').value = nombre;
+        document.getElementById('modalMaterialLabel').value = `[${id}] ${nombre}`;
+        usageModal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        usageModal.style.display = 'none';
+        usageForm.reset();
+    }
+
+    usageForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById('btnSubmitForm');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+        const payload = {
+            materialId: document.getElementById('modalMaterialId').value,
+            materialNombre: document.getElementById('modalMaterialNombre').value,
+            responsable: document.getElementById('responsable').value.trim(),
+            cantidad: Number(document.getElementById('cantidad').value),
+            ordenTrabajo: document.getElementById('ordenTrabajo').value.trim(),
+            actividad: document.getElementById('actividad').value.trim()
+        };
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (result.status === 'success') {
+                alert('✅ Registro guardado con éxito');
+                closeModal();
+                loadDataFromSheets(); // Recargar datos para actualizar stock visualmente
+            } else {
+                alert('❌ Error al guardar: ' + result.message);
+            }
+        } catch (error) {
+            console.error("Error guardando el registro:", error);
+            alert('⚠️ Ocurrió un error al intentar enviar los datos.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Registro';
+        }
+    });
 
     function resetFilters() {
         searchInput.value = '';

@@ -587,53 +587,52 @@
         usageModal.style.display = 'none';
         usageForm.reset();
     }
-
-    usageForm.addEventListener('submit', (e) => {
-    // Detenemos el envío normal para hacerlo nosotros
+    
+usageForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const submitBtn = document.getElementById('btnSubmitForm');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
-    // 1. Verificamos si ya existe el iframe oculto para recibir la respuesta
-    let iframe = document.getElementById('hidden_iframe');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.name = 'hidden_iframe';
-        iframe.id = 'hidden_iframe';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-    }
-
-    // 2. Cuando el iframe termine de cargar (es decir, cuando Apps Script responda)
-    iframe.onload = () => {
-        // Si es la primera vez que carga el iframe, no hacer nada
-        if (!iframe.dataset.loaded) {
-            iframe.dataset.loaded = 'true';
-            return;
-        }
-
-        // 3. Aquí asumimos que el guardado fue exitoso
-        alert('✅ ¡Registro guardado con éxito y stock actualizado!');
-        
-        // 4. Limpiamos el formulario y recargamos los datos
-        closeModal();
-        loadDataFromSheets();
-        
-        // Restauramos el botón
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Registro';
+    // 1. Extraemos los datos manualmente y los convertimos a un objeto
+    const datos = {
+        materialId: document.getElementById('modalMaterialId').value,
+        materialNombre: document.getElementById('modalMaterialNombre').value,
+        responsable: document.getElementById('responsable').value.trim(),
+        cantidad: document.getElementById('cantidad').value,
+        ordenTrabajo: document.getElementById('ordenTrabajo').value.trim(),
+        actividad: document.getElementById('actividad').value.trim()
     };
 
-    // 5. Configuramos el formulario para que se envíe al iframe oculto
-    usageForm.action = API_URL;
-    usageForm.target = 'hidden_iframe';
-    usageForm.method = 'POST';
+    try {
+        // 2. Enviamos los datos como JSON con fetch
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            // Usamos text/plain para evitar el bloqueo preflight de CORS en Apps Script
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8', 
+            },
+            body: JSON.stringify(datos)
+        });
+        
+        const result = await response.json();
 
-    // 6. Enviamos el formulario de forma tradicional
-    usageForm.submit();
+        if (result.status === 'success') {
+            alert('✅ ¡Registro guardado con éxito y stock actualizado!');
+            closeModal();
+            loadDataFromSheets(); // Recarga el catálogo
+        } else {
+            alert('❌ Error al guardar: ' + (result.message || 'Desconocido'));
+        }
+    } catch (error) {
+        console.error("Error guardando el registro:", error);
+        alert('⚠️ Ocurrió un error al intentar enviar los datos. Revisa tu conexión.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Registro';
+    }
 });
+    
 
     function resetFilters() {
         searchInput.value = '';

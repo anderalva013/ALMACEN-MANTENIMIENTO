@@ -594,29 +594,27 @@
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
-        const payload = {
-            materialId: document.getElementById('modalMaterialId').value,
-            materialNombre: document.getElementById('modalMaterialNombre').value,
-            responsable: document.getElementById('responsable').value.trim(),
-            cantidad: Number(document.getElementById('cantidad').value),
-            ordenTrabajo: document.getElementById('ordenTrabajo').value.trim(),
-            actividad: document.getElementById('actividad').value.trim()
-        };
+        const materialId = document.getElementById('modalMaterialId').value;
+        const materialNombre = document.getElementById('modalMaterialNombre').value;
+        const responsable = encodeURIComponent(document.getElementById('responsable').value.trim());
+        const cantidad = document.getElementById('cantidad').value;
+        const ordenTrabajo = encodeURIComponent(document.getElementById('ordenTrabajo').value.trim());
+        const actividad = encodeURIComponent(document.getElementById('actividad').value.trim());
+
+        // Construimos la URL con parámetros GET
+        const urlRegistro = `${API_URL}?accion=registrar&materialId=${materialId}&materialNombre=${encodeURIComponent(materialNombre)}&responsable=${responsable}&cantidad=${cantidad}&ordenTrabajo=${ordenTrabajo}&actividad=${actividad}`;
 
         try {
-            // Enviamos con no-cors para que GitHub Pages pueda comunicarse con Apps Script sin bloqueos
-            await fetch(API_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
+            const response = await fetch(urlRegistro);
+            const result = await response.json();
 
-            // Como no-cors no retorna datos legibles, si el envío pasa el fetch, se da por exitoso
-            alert('✅ ¡Registro guardado con éxito y stock actualizado!');
-            closeModal();
-            loadDataFromSheets(); // Recarga los datos y el stock actualizado en pantalla
-
+            if (result.status === 'success') {
+                alert('✅ ¡Registro guardado con éxito y stock actualizado!');
+                closeModal();
+                loadDataFromSheets(); // Recarga la tabla con el stock actualizado
+            } else {
+                alert('❌ Error al guardar: ' + (result.message || 'Desconocido'));
+            }
         } catch (error) {
             console.error("Error guardando el registro:", error);
             alert('⚠️ Ocurrió un error al intentar enviar los datos.');

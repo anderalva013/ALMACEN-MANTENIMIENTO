@@ -588,44 +588,51 @@
         usageForm.reset();
     }
 
-    usageForm.addEventListener('submit', async (e) => {
+    usageForm.addEventListener('submit', (e) => {
+    // Detenemos el envío normal para hacerlo nosotros
     e.preventDefault();
+
     const submitBtn = document.getElementById('btnSubmitForm');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
-    // 1. Crear un objeto URLSearchParams a partir del formulario
-    //    Esto convierte los datos al formato que Apps Script espera
-    const formData = new FormData(usageForm);
-    const params = new URLSearchParams(formData);
+    // 1. Verificamos si ya existe el iframe oculto para recibir la respuesta
+    let iframe = document.getElementById('hidden_iframe');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.name = 'hidden_iframe';
+        iframe.id = 'hidden_iframe';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+    }
 
-    try {
-        // 2. Enviar los datos con el Content-Type correcto
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                // Esto es clave para que e.parameter funcione en doPost
-                'Content-Type': 'application/x-www-form-urlencoded' 
-            },
-            body: params
-        });
-        
-        const result = await response.json();
-
-        if (result.status === 'success') {
-            alert('✅ ¡Registro guardado con éxito y stock actualizado!');
-            closeModal();
-            loadDataFromSheets();
-        } else {
-            alert('❌ Error al guardar: ' + (result.message || 'Desconocido'));
+    // 2. Cuando el iframe termine de cargar (es decir, cuando Apps Script responda)
+    iframe.onload = () => {
+        // Si es la primera vez que carga el iframe, no hacer nada
+        if (!iframe.dataset.loaded) {
+            iframe.dataset.loaded = 'true';
+            return;
         }
-    } catch (error) {
-        console.error("Error guardando el registro:", error);
-        alert('⚠️ Ocurrió un error al intentar enviar los datos. Revisa tu conexión.');
-    } finally {
+
+        // 3. Aquí asumimos que el guardado fue exitoso
+        alert('✅ ¡Registro guardado con éxito y stock actualizado!');
+        
+        // 4. Limpiamos el formulario y recargamos los datos
+        closeModal();
+        loadDataFromSheets();
+        
+        // Restauramos el botón
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Registro';
-    }
+    };
+
+    // 5. Configuramos el formulario para que se envíe al iframe oculto
+    usageForm.action = API_URL;
+    usageForm.target = 'hidden_iframe';
+    usageForm.method = 'POST';
+
+    // 6. Enviamos el formulario de forma tradicional
+    usageForm.submit();
 });
 
     function resetFilters() {

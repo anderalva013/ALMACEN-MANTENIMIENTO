@@ -589,39 +589,44 @@
     }
 
     usageForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = document.getElementById('btnSubmitForm');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    e.preventDefault();
+    const submitBtn = document.getElementById('btnSubmitForm');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
-        // Creamos un objeto FormData con los datos del formulario
-        const formData = new FormData(usageForm);
+    // 1. Crear un objeto URLSearchParams a partir del formulario
+    //    Esto convierte los datos al formato que Apps Script espera
+    const formData = new FormData(usageForm);
+    const params = new URLSearchParams(formData);
+
+    try {
+        // 2. Enviar los datos con el Content-Type correcto
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                // Esto es clave para que e.parameter funcione en doPost
+                'Content-Type': 'application/x-www-form-urlencoded' 
+            },
+            body: params
+        });
         
-        try {
-            // Enviamos los datos por POST a la URL de Apps Script
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                body: formData,
-                // No necesitamos headers porque FormData maneja el content-type automáticamente
-            });
-            
-            const result = await response.json();
+        const result = await response.json();
 
-            if (result.status === 'success') {
-                alert('✅ ¡Registro guardado con éxito y stock actualizado!');
-                closeModal();
-                loadDataFromSheets(); // Recargamos el catálogo para ver el nuevo stock
-            } else {
-                alert('❌ Error al guardar: ' + (result.message || 'Desconocido'));
-            }
-        } catch (error) {
-            console.error("Error guardando el registro:", error);
-            alert('⚠️ Ocurrió un error al intentar enviar los datos. Revisa tu conexión.');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Registro';
+        if (result.status === 'success') {
+            alert('✅ ¡Registro guardado con éxito y stock actualizado!');
+            closeModal();
+            loadDataFromSheets();
+        } else {
+            alert('❌ Error al guardar: ' + (result.message || 'Desconocido'));
         }
-    });
+    } catch (error) {
+        console.error("Error guardando el registro:", error);
+        alert('⚠️ Ocurrió un error al intentar enviar los datos. Revisa tu conexión.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Registro';
+    }
+});
 
     function resetFilters() {
         searchInput.value = '';

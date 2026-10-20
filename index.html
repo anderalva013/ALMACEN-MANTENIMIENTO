@@ -381,8 +381,8 @@
     <div class="modal-content">
         <h2><i class="fas fa-clipboard-list"></i> Registrar Salida de Material</h2>
         <form id="usageForm">
-            <input type="hidden" id="modalMaterialId">
-            <input type="hidden" id="modalMaterialNombre">
+            <input type="hidden" id="modalMaterialId" name="materialId">
+            <input type="hidden" id="modalMaterialNombre" name="materialNombre">
 
             <div class="form-group">
                 <label>Material Seleccionado:</label>
@@ -391,22 +391,22 @@
 
             <div class="form-group">
                 <label for="responsable">Responsable <span style="color:red;">*</span></label>
-                <input type="text" id="responsable" placeholder="Nombre de quien retira" required>
+                <input type="text" id="responsable" name="responsable" placeholder="Nombre de quien retira" required>
             </div>
 
             <div class="form-group">
                 <label for="cantidad">Cantidad Usada <span style="color:red;">*</span></label>
-                <input type="number" id="cantidad" min="1" placeholder="Ej: 2" required>
+                <input type="number" id="cantidad" name="cantidad" min="1" placeholder="Ej: 2" required>
             </div>
 
             <div class="form-group">
                 <label for="ordenTrabajo">Orden de Trabajo (OT) <span style="color:red;">*</span></label>
-                <input type="text" id="ordenTrabajo" placeholder="Ej: OT-2026-045" required>
+                <input type="text" id="ordenTrabajo" name="ordenTrabajo" placeholder="Ej: OT-2026-045" required>
             </div>
 
             <div class="form-group">
                 <label for="actividad">Actividad / Observación</label>
-                <textarea id="actividad" rows="3" placeholder="Descripción breve del trabajo realizado..."></textarea>
+                <textarea id="actividad" name="actividad" rows="3" placeholder="Descripción breve del trabajo realizado..."></textarea>
             </div>
 
             <div class="modal-actions">
@@ -575,7 +575,7 @@
         }
     }
 
-    /* LÓGICA DE MODAL Y REGISTRO CORREGIDA */
+    /* LÓGICA DE MODAL Y REGISTRO CON POST */
     function openModal(id, nombre) {
         document.getElementById('modalMaterialId').value = id;
         document.getElementById('modalMaterialNombre').value = nombre;
@@ -594,30 +594,29 @@
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
-        const materialId = document.getElementById('modalMaterialId').value;
-        const materialNombre = encodeURIComponent(document.getElementById('modalMaterialNombre').value);
-        const responsable = encodeURIComponent(document.getElementById('responsable').value.trim());
-        const cantidad = document.getElementById('cantidad').value;
-        const ordenTrabajo = encodeURIComponent(document.getElementById('ordenTrabajo').value.trim());
-        const actividad = encodeURIComponent(document.getElementById('actividad').value.trim());
-
-        // Construimos la URL GET con parámetros que lee doGet en Apps Script
-        const urlRegistro = `${API_URL}?accion=registrar&materialId=${materialId}&materialNombre=${materialNombre}&responsable=${responsable}&cantidad=${cantidad}&ordenTrabajo=${ordenTrabajo}&actividad=${actividad}`;
-
+        // Creamos un objeto FormData con los datos del formulario
+        const formData = new FormData(usageForm);
+        
         try {
-            const response = await fetch(urlRegistro, { redirect: "follow" });
+            // Enviamos los datos por POST a la URL de Apps Script
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: formData,
+                // No necesitamos headers porque FormData maneja el content-type automáticamente
+            });
+            
             const result = await response.json();
 
             if (result.status === 'success') {
                 alert('✅ ¡Registro guardado con éxito y stock actualizado!');
                 closeModal();
-                loadDataFromSheets(); // Recarga la tabla con los datos y stock actualizado
+                loadDataFromSheets(); // Recargamos el catálogo para ver el nuevo stock
             } else {
                 alert('❌ Error al guardar: ' + (result.message || 'Desconocido'));
             }
         } catch (error) {
             console.error("Error guardando el registro:", error);
-            alert('⚠️ Ocurrió un error al intentar enviar los datos.');
+            alert('⚠️ Ocurrió un error al intentar enviar los datos. Revisa tu conexión.');
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Registro';
